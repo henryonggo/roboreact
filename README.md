@@ -1,12 +1,13 @@
 # Learn React
 
 ## What's new?
-
-Added tachyons
+Initialize with
 ```
+npm install -g npm
 npm install tachyons
+npm install redux
+npm install react-redux
 ```
-
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
