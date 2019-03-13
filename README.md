@@ -3,12 +3,8 @@
 ## What's new?
 Initialize with
 
-1. Run `npm install -g npm`
-2. Run `npm install tachyons`
-3. Run `npm install redux`
-4. Run `npm install react-redux`
-5. Run `npm install redux-logger`
-6. Run `npm install redux-thunk`
+1. Run `npm install`
+2. Run `npm start`
 
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
