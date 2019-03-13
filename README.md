@@ -7,6 +7,8 @@ npm install -g npm
 npm install tachyons
 npm install redux
 npm install react-redux
+npm install redux-logger
+npm install redux-thunk
 ```
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
