@@ -1,0 +1,9 @@
+@import "styles/mixins/index.scss";
+
+.WorkflowWidget {
+    width: 100%;
+
+    overflow-y: auto;
+
+    @include StandardModalScrollBar("WorkflowWidget__scrollbar");
+}

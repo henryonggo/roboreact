@@ -1,0 +1,71 @@
+@import "styles/mixins/index.scss";
+
+// TODO: remove the hack
+body.InCWEnv .FormBaseModal {
+    // Modifers
+    &.resizable {
+        flex-grow: 1;
+        flex-shrink: 1;
+    }
+}
+
+// TODO: remove the hack
+body:not(.InCWEnv) .FormBaseModal {
+    // Modifiers
+    &.resizable {
+        width: 100%;
+        height: 100%;
+    }
+}
+
+.FormBaseModal {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+
+    flex-grow: 1;
+    flex-shrink: 1;
+
+    & .FormBaseModal__content {
+        // For some reason this is needed to allow the container to resize
+        min-height: 0; 
+
+        flex-grow: 1;
+        flex-shrink: 1;
+
+        overflow: auto;
+
+        @include StandardModalScrollBar("FormBaseModal__scrollbar");
+    }
+
+    & .FormBaseModal__actions-container {
+        display: flex;
+
+        flex-grow: 0;
+        flex-shrink: 0;
+        
+        margin-top: .5rem;
+
+        align-self: flex-end;
+
+        & > * {
+            margin-left: .3rem;
+        }
+    }
+
+    // Modifiers
+    &.resizable {
+        // width: 100%;
+        // height: 100%;
+        // flex-grow: 1;
+        // flex-shrink: 1;
+    }
+
+    &.flexbox {
+        & .FormBaseModal__content {
+            display: flex;
+            flex-direction: column;
+        }       
+    }
+}

@@ -1,0 +1,12 @@
+@import "styles/functions/index.scss";
+
+.App {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+
+    overflow: hidden;
+
+    background-color: theme-link("BASE", "bg-color", "secondary");
+    color: theme-link("BASE", "text-color", "primary");
+}

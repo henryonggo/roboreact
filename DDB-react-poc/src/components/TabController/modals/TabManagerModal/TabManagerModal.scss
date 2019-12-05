@@ -1,0 +1,14 @@
+.TabManagerModal {
+    width: 15rem;
+
+    // TODO: remove the hack
+    & .DraggableList__list-item.dragging-hack {
+        // TODO: this is a hack being used due to a bug in the library...
+        // Hopefully it will be fixed sometime in the future
+        --corrected-top: 0px;
+        --corrected-left: 0px;
+
+        top: var(--corrected-top) !important;
+        left: var(--corrected-left) !important;
+    }
+}

@@ -1,0 +1,12 @@
+export default {
+    "header": {
+        "enabled": true,
+        "presetID": "widget-preset-yvh33bjusq",
+        "presetType": "MARGINALS_WIDGET"
+    },
+    "footer": {
+        "enabled": false,
+        "presetID": "widget-preset-qpj5btuxqn",
+        "presetType": "MARGINALS_WIDGET"
+    }
+};

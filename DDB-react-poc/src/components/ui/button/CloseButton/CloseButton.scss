@@ -1,0 +1,14 @@
+@import "styles/mixins/index.scss";
+
+.CloseButton.CloseButton { // Increase specificity
+    display: inherit;
+    pointer-events: initial;
+
+    // Note: disabled modifer coloring is handled internally by this mixin
+    @include StandardIconButtonStyles("BASE", 0.9rem);
+
+    &.disabled {
+        cursor: initial;
+        pointer-events: none;
+    }
+}

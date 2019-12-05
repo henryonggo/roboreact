@@ -1,0 +1,37 @@
+.react-grid-layout {
+    position: relative;
+    transition: height 100ms ease;
+}
+
+.react-grid-item {
+    transition: all 100ms ease;
+    transition-property: left, top;
+
+    &.cssTransforms {
+        transition-property: transform;
+    }
+
+    &.resizing {
+        z-index: 3;
+        opacity: 0.7;
+        will-change: width, height;
+    }
+
+    &.react-draggable-dragging {
+        transition: none;
+        z-index: 3;
+        will-change: transform;      
+    }
+
+    &.react-grid-placeholder {
+        background: rgb(136, 136, 136);
+        opacity: 0.2;
+        transition-duration: 100ms;
+        z-index: 2;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        -o-user-select: none;
+        user-select: none;
+    }
+}

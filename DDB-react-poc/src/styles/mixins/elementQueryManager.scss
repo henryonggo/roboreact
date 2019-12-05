@@ -1,0 +1,54 @@
+// ELEMENT QUERY MANAGER
+// NOTE: since element selectors are not part of the official CSS spec at the time of writing this,
+// this manager relies on the functionality provided by https://github.com/marcj/css-element-queries
+
+/*
+    Ranges:
+
+    0 - 5rem: xxs
+    5 - 10rem: xs
+    10 - 20rem: sm
+    20 - 30rem: md
+    30 - 40rem: lg
+    40 - 50rem: xl
+    50rem +: xxl
+*/
+
+/* 
+Breakpoint argument choices:
+    - xxs
+    - xs
+    - sm
+    - md
+    - lg
+    - xl
+    - xxl
+
+Usage:
+@include respond-element(<argument>) {
+    <content>
+}
+*/
+@mixin respond-element($breakpoint) {
+    @if $breakpoint == xxs {
+        &[max-width~="5rem"] { @content };
+    }
+    @if $breakpoint == xs {
+        &[max-width~="10rem"] { @content };
+    }
+    @if $breakpoint == sm {
+        &[max-width~="20rem"] { @content };
+    }
+    @if $breakpoint == md {
+        &[max-width~="30rem"] { @content };
+    }
+    @if $breakpoint == lg {
+        &[max-width~="40rem"] { @content };
+    }
+    @if $breakpoint == xl {
+        &[max-width~="50rem"] { @content };
+    }
+    @if $breakpoint == xxl {
+        &[min-width~="50rem"] { @content };
+    }
+}

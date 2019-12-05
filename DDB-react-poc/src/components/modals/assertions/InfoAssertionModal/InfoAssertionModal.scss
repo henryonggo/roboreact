@@ -1,0 +1,9 @@
+@import "styles/functions/index.scss";
+
+.InfoAssertionModal {
+    // Nothing there right now
+}
+
+.InfoAssertionModal__icon {
+    color: theme-link("assertion", "info-color", "primary");
+}

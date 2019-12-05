@@ -1,0 +1,13 @@
+@import "styles/functions/index.scss";
+
+.BlockTypeOption {
+    & .ToolbarDropdown {
+        & > .ToolbarOption {
+            width: 5rem;
+
+            > .ToolbarOption__label {
+                width: 3.5rem;
+            }
+        }
+    }
+}

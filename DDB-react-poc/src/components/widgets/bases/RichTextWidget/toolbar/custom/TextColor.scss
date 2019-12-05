@@ -1,0 +1,17 @@
+@import "styles/functions/index.scss";
+.TextColorOption {
+    .ColorPickerWrapper {
+        position: absolute;
+        z-index: 999;
+
+        .ColorPicker {
+            margin-top: 0.5rem;
+            padding: 0.25rem;
+  
+            width: 10rem;
+            background-color: theme-link("RichTextWidgetConfig", "accent-color", "primary");
+            box-shadow: 1px 1px 7px rgba(10, 10, 10, 0.6);
+            border-radius: 0.3rem;
+        }
+    }
+}

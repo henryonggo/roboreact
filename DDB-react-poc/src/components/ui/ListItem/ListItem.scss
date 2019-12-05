@@ -1,0 +1,45 @@
+@import "styles/functions/index.scss";
+
+.ListItem {
+    & > .ListItem__super-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        padding: .4rem .5rem .4rem .5rem;
+
+        transition: background-color .1s;
+
+        &:hover {
+            background-color: theme-link("ListItem", "selected-color", "primary", 0.3);
+        }
+
+        & > .ListItem__prefix-container {
+            flex-grow: 0;
+            flex-shrink: 0;
+
+            display: flex;
+            flex-direction: row;
+        }
+
+        & > .ListItem__children-container {
+            flex-grow: 1;
+            flex-shrink: 1;
+
+            margin: 0 0.3rem 0 0.3rem;
+
+            // Cut off text overflow with ellipsis
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        & > .ListItem__suffix-container {
+            flex-grow: 0;
+            flex-shrink: 0;
+
+            display: flex;
+            flex-direction: row;
+        }
+    }
+}

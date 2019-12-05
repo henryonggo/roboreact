@@ -1,0 +1,96 @@
+@import "styles/mixins/index.scss";
+@import "styles/functions/index.scss";
+
+// TODO: remove the hack
+body.InCWEnv .FormSection {
+    flex-grow: 0;
+    flex-shrink: 0;
+
+    // Modifiers
+    &.shrinkable {
+        flex-shrink: 1;
+
+        & > .FormSection__content {
+            @include StandardModalScrollBar("DraggableList__scrollbar");
+            overflow: auto;
+        }
+    }
+}
+
+// TODO: remove the hack
+body:not(.InCWEnv) .FormSection {
+    // Empty, for now
+}
+
+.FormSection {
+    display: flex;
+    flex-direction: column;
+
+    margin-bottom: .7rem;
+    padding: .7rem;
+
+    border-radius: .3rem;
+
+    color: theme-link("FormSection", "text-color", "primary");
+
+    @include StandardModalScrollBar("FormSection__scrollbar");
+
+    & > .FormSection__header {
+        position: relative;
+
+        color: theme-link("FormSection", "text-color", "secondary");
+        font-size: 1rem;
+
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+
+        margin-bottom: .5rem;
+
+        & > :not(:last-child) {
+            margin-right: .3rem;
+        }
+
+        & > .FormSection__title {
+            flex-grow: 1;
+            flex-shrink: 0;
+        }
+
+        & > .FormSection__extension-item {
+            display: flex;
+            align-items: center;
+
+            & > svg {
+                vertical-align: middle;
+            }
+        }
+    }
+
+    & > .FormSection__content {
+        flex-grow: 1;
+        flex-shrink: 1;
+        min-height: 0px;
+    }
+
+    // -----------------
+    // --- Modifiers ---
+    // -----------------
+
+    &.auto-space {
+        & > .FormSection__content {
+            // Add some spacing between content elements
+            & > *:not(:first-child) {
+                margin-top: 0.8rem;
+            }
+        }
+    }
+
+    &.display-background {
+        background-color: theme-link("FormSection", "bg-color", "primary", 0.5);
+    }
+
+    &.shrinkable {
+        // flex-shrink: 1;
+    }
+}

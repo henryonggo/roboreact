@@ -1,0 +1,36 @@
+@mixin RichTextWidgetEditorMixin {
+    position: relative;
+    overflow-y: auto;
+
+    font-size: 1rem;
+    font-family: initial;
+
+    span[data-text="true"] {
+        font-family: inherit;
+    }
+    ul[class="public-DraftStyleDefault-ul"] {
+        color: theme-link("RichTextWidgetConfig", "text-color", "primary");
+    }
+    ol[class="public-DraftStyleDefault-ol"] {
+        color: theme-link("RichTextWidgetConfig", "text-color", "primary");
+    }
+
+    // Data block margin adjustment.
+    div[data-contents="true"] > div[data-block="true"] {
+        margin: 1em 0 0 0;
+
+        &:last-child {
+            margin-bottom: 1em;
+        }
+    }
+
+    // Hyperlink override.
+    span.rdw-link-decorator-wrapper > a,
+    span.rdw-link-decorator-wrapper > a > span > span {
+        color: theme-link("RichTextWidget", "link-color", "primary");
+    }
+    
+    .public-DraftStyleDefault-block {
+        margin-top: 1em;
+    }
+}

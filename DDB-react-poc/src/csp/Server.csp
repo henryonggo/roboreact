@@ -1,0 +1,1929 @@
+<%
+var G_MAX_ROLES = 8;
+var G_DELIM = ",";
+var G_DOC_TYPE_FOLDER = 0;
+var G_MSXML2 = "MSXML2.DOMDocument.6.0";
+
+var CSP_REQ_POST_KEY = "body";
+
+var SERVER_ROOT_STRING = "cw:";
+var SERVER_ROOT_REGEX = /cw:/g;
+
+
+/******** HELPER FUNCTIONS ********/
+var HELPERS = (function() {
+	function setJSONResponseType() {
+		Response.ContentType = "application/json";
+	}
+	
+	function setXMLTypeResponse() {
+		Response.ContentType = "text/xml";
+		Response.Write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+	}
+	
+	function removeSpecialChars(i_sText) {
+		var sRetVal = i_sText;
+	
+		var oSpecChar = new Array();
+		oSpecChar[String.fromCharCode(8)] = "&amp;";
+		//WORD smart quote
+		oSpecChar[String.fromCharCode(8217)] = "'";
+		oSpecChar[String.fromCharCode(226) + String.fromCharCode(8364) + String.fromCharCode(8482)] = "'";
+		//WORD smart long dash
+		oSpecChar[String.fromCharCode(8211)] = "-";
+		oSpecChar[String.fromCharCode(226) + String.fromCharCode(8364) + String.fromCharCode(8220)] = "-";
+	
+		for (var sSpecChar in oSpecChar) {
+			var oRegex = new RegExp(sSpecChar, "gi");
+			sRetVal = sRetVal.replace(oRegex, oSpecChar[sSpecChar]);
+		} //end for
+	
+		return sRetVal;
+	}
+	
+	// NOTE: this sanitization function is safe from multiple sanitizations iterations over the same string
+	function _sanitizeInputString(i_sInput) {
+		var sSanitized = i_sInput;
+
+		sSanitized = decodeURIComponent(sSanitized);
+		// For some reason spaces are replaced with +'s when the request params get sent to the server so it needs to be corrected here
+		// along with normal spaces.
+		sSanitized = sSanitized.replace(/\+|\ /g, ' ');
+	
+		return sSanitized;
+	}
+	
+	function _expandFilePath(i_sFilePath) {
+		var sExpanded = i_sFilePath;
+	
+		var sLayoutPath = _sanitizeInputString(CASEWARE_UTIL_ENDPOINTS.getLayoutPath().message);
+	
+		// Expand out file to full file path
+		sExpanded = sExpanded.replace(SERVER_ROOT_REGEX, sLayoutPath);
+	
+		return sExpanded;
+	}
+	
+	function _compressFilePath(i_sFilePath) {
+		var sCompressed = i_sFilePath;
+		
+		var sLayoutPath = _sanitizeInputString(CASEWARE_UTIL_ENDPOINTS.getLayoutPath().message);
+	
+		sCompressed = sCompressed.replace(sLayoutPath, SERVER_ROOT_STRING);
+	
+		return sCompressed;
+	}
+	
+	/**
+	 * Constructs the return object of a response.
+	 * 
+	 * @param i_bSuccess The success indicator.
+	 * @param i_sMessage (Optional) The message.
+	 */
+	function _constructRet(i_bSuccess, i_sMessage) {
+		if (i_bSuccess) {
+			return {
+				success: i_bSuccess,
+				message: i_sMessage
+			};
+		} else {
+			return {
+				success: i_bSuccess,
+				error: i_sMessage,
+			};
+		}
+	}
+	
+	function _generateUniqueID(i_sPrefix) {
+		var sPrefixCleaned = (i_sPrefix) ? i_sPrefix + "_" : "";
+	
+		var sNow = new Date().getTime().toString(36);
+		var sRand = Math.random().toString(36);
+		var sUniqueID = (sRand + sNow).substring(2, 10);
+	
+		return sPrefixCleaned + sUniqueID;
+	}
+	
+	function _getFullFileName(i_sFilePath) {
+		var sFileName = i_sFilePath.substring(i_sFilePath.lastIndexOf("\\") + 1);
+		return sFileName;
+	}
+	
+	// Returns the file name without the extension
+	function _getFileName(i_sFilePath) {
+		return _getFullFileName(i_sFilePath).split(/\./g)[0];
+	}
+	
+	function _getFileExtension(i_sFilePath) {
+		return _getFullFileName(i_sFilePath).split(/\./g)[1];
+	}
+
+	function _sanitizeContent(i_sContents) {
+		var sSanitized = i_sContents;
+	
+		// sSanitized = sSanitized.replace(/\\\"\'|'/g, "\\\"\'");
+		// sSanitized = sSanitized.replace(/\\\"\"|"/g, "\\\"\"");
+
+		sSanitized = decodeURIComponent(sSanitized);
+		sSanitized = sSanitized.replace(/\+|\ /g, ' ');
+		sSanitized = sSanitized.replace(/\[amp;\]/g, "&amp;");
+		sSanitized = sSanitized.replace(/\[;\]/g, "&");
+	
+		return sSanitized;
+	}
+
+	function arrayIndexOf(i_aArr, i_searchEl) {
+		for (var i=0; i < i_aArr.length; i++) {
+			var currEl = i_aArr[i];
+			if (currEl === i_searchEl) {
+				return i;
+			}
+		}
+
+		return -1;
+	}
+
+	return {
+		setJSONResponseType: setJSONResponseType,
+		setXMLTypeResponse: setXMLTypeResponse,
+		removeSpecialChars: removeSpecialChars,
+		sanitizeInputString: _sanitizeInputString,
+		expandFilePath: _expandFilePath,
+		compressFilePath: _compressFilePath,
+		constructRet: _constructRet,
+		generateUniqueID: _generateUniqueID,
+		getFullFileName: _getFullFileName,
+		getFileName: _getFileName,
+		getFileExtension: _getFileExtension,
+		sanitizeContent: _sanitizeContent,
+		arrayIndexOf: arrayIndexOf
+	};
+})();
+
+  /****************************************/
+ /******** CASEWARE UTIL FUNCTIONS *******/
+/****************************************/
+
+var CASEWARE_UTIL_ENDPOINTS = (function() {
+	//Get CaseWare Working Papers program path
+	function getAppProgPath() {
+		var sPath = "";
+
+		if (Application) {
+			sPath = Application.ApplicationInfo("ProgramPath");
+
+			if (sPath != "" && sPath.charAt(sPath.length - 1) == "\\") {
+				sPath = sPath.substring(0, sPath.length - 1);
+			} //end if
+
+		} //end if
+
+		return HELPERS.constructRet(true, sPath);
+	}
+
+	//Get template layout path
+	function getLayoutPath() {
+		var sPath = "";
+
+		if (Application) {
+			sPath = Application.Options.TemplatePath;
+
+			var oFSO = new ActiveXObject("Scripting.FileSystemObject");
+
+			//workaround for Working Papers bug: 
+			//TemplatePath returns an empty string so assume using default "Template" folder			
+			if (sPath == "") {
+				sPath = getAppProgPath().message;
+
+				//strip out extra slash at the end
+				if (sPath != "" && sPath.charAt(sPath.length - 1) == "\\") {
+					sPath = sPath.substring(0, sPath.length - 1);
+				} //end if
+
+				sPath += "\\Template";
+			} //end if
+
+			//strip out extra slash at the end
+			if (sPath != "" && sPath.charAt(sPath.length - 1) == "\\") {
+				sPath = sPath.substring(0, sPath.length - 1);
+			} //end if
+
+			//append the name of the layout folder
+			sPath += "\\" + Client.ClientOptions.Layout;
+
+			//Use the default "Template" folder if the path does not exist
+			if (oFSO && !oFSO.FileExists(sPath)) {
+				sPath = getAppProgPath().message;
+
+				//strip out extra slash at the end
+				if (sPath != "" && sPath.charAt(sPath.length - 1) == "\\") {
+					sPath = sPath.substring(0, sPath.length - 1);
+				} //end if
+
+				sPath += "\\Template\\" + Client.ClientOptions.Layout;
+			} //end if
+
+			oFSO = null;
+		} //end if
+
+		return HELPERS.constructRet(true, sPath);
+	}
+
+	//Get the activated roles in CW Client options
+	function getRoles() {
+		if (Client) {
+			var oClientOptions = Client.ClientOptions;
+
+			var aRoleSets = [];
+			// Add default role set for roles that aren't in a role set.
+			var aDefaultRoles = [];
+			var nRoleCount = oClientOptions.NumberRoles;
+			for (var i = 1; i <= nRoleCount; i++) {
+				var oRole = {
+					"name": oClientOptions.Role(i)
+				};
+				aDefaultRoles.push(oRole);
+			}
+			var oDefaultRoleSet = {
+				"description": "Default Role Set",
+				"roles": aDefaultRoles
+			};
+			aRoleSets.push(oDefaultRoleSet);
+
+
+			// Add any custom role sets.
+			var oRoleSets = oClientOptions.RoleSets;
+			var nRoleSetsCount = oRoleSets.Count || 0;
+			if (nRoleSetsCount > 0) {
+				var oEnum = new Enumerator(oRoleSets);
+				while (!oEnum.atEnd()) {
+					var oCurrRoleSetRaw = oEnum.item();
+
+					if (oCurrRoleSetRaw) {
+						var aCurrRoles = [];
+						var oRoleSetCount = oCurrRoleSetRaw.NumberRoles;
+						for (var i = 0; i < oRoleSetCount; i++) {
+							var oCurrRole = {
+								"name": oCurrRoleSetRaw.Role(i)
+							};
+							aCurrRoles.push(oCurrRole);
+						}
+						var oCurrRoleSet = {
+							"description": oCurrRoleSetRaw.Description,
+							"roles": aCurrRoles
+						};
+
+						aRoleSets.push(oCurrRoleSet);
+					}
+					oEnum.moveNext();
+				}
+			}
+
+			var oResponse = {
+				"roleSets": aRoleSets
+			};
+
+			return HELPERS.constructRet(true, oResponse);
+		}
+
+		return HELPERS.constructRet(false, "Not in client file");
+	}
+
+	//Returns an XML representation of the Document Manager tree
+	function getDocMgrJSON() {
+		var oClient = Client;
+		if (oClient) {
+			var oRoot = {
+				"documents": [],
+			};
+
+			// Stores the relevant parent nodes for use in constructing the document tree.
+			var aParentFolders = [];
+			aParentFolders[0] = oRoot.documents;
+
+			var nPreviousDepth = -1;
+			// Documents are iterated through in top to bottom order, ignoring folder structure.
+			var oEnum = new Enumerator(oClient.Documents);
+			for (; !oEnum.atEnd(); oEnum.moveNext()) {
+				var oDoc = oEnum.item();
+				var nType = oDoc.Type;
+				var nDepth = oDoc.IndentDepth;
+
+				var aSignoffs = [];
+				for (var nRole = 1; nRole <= G_MAX_ROLES; nRole++) {
+					var sSignoff = oDoc.SignoffInitials(nRole);
+					if (sSignoff != "") {
+						aSignoffs.push(sSignoff);
+					}
+				}
+
+				var sRoleSetID = oDoc.RoleSet;
+				var nMaxRoleCount = 0;
+				if (sRoleSetID) {
+					if (sRoleSetID == "*") {
+						nMaxRoleCount = 0;
+					} else {
+						nMaxRoleCount = oClient.ClientOptions.Rolesets.Get(sRoleSetID).NumberRoles;
+					}
+				} else {
+					nMaxRoleCount = oClient.ClientOptions.NumberRoles;
+				}
+
+				// Construct document object.
+				var oDocument = {
+					"depth": nDepth,
+					"type": nType,
+					"number": nType === G_DOC_TYPE_FOLDER ? "" : oDoc.Id,
+					"name": oDoc.Name,
+					"guid": oDoc.CWGUID,
+					"signoff": nType === G_DOC_TYPE_FOLDER ? "" : sSignoff,
+					"roleSetCount": nMaxRoleCount
+				}
+				if (oDocument.type === G_DOC_TYPE_FOLDER) {
+					oDocument.documents = [];
+				}
+
+				// Find the parent folder for the documents at this depth.
+				var aParentFolder = aParentFolders[nDepth];
+				if (!aParentFolder) {
+					// If there is no parent, use the last folder of the previous parent as the parent.
+					var aLastParentFolders = aParentFolders[nDepth - 1];
+					aParentFolder = aLastParentFolders[aLastParentFolders.length - 1].documents;
+					aParentFolders[nDepth] = aParentFolder;
+				}
+
+				aParentFolder.push(oDocument);
+
+				// If this depth is less than the previous, 
+				// clear out the parents for all higher depths as those folders have been fully populated and are no longer needed.
+				if (nDepth < nPreviousDepth) {
+					while (aParentFolders.length > nDepth + 1) {
+						aParentFolders.pop();
+					}
+				}
+
+				nPreviousDepth = nDepth;
+			}
+
+			var oResponse = {
+				"root": oRoot
+			};
+
+			return HELPERS.constructRet(true, oResponse);
+		}
+	}
+
+	//Gets a CW document
+	function getCWDocument() {
+		var guid = Request.QueryString("param1");
+		var num = Request.QueryString("param2");
+
+		if (guid || num) {
+			if (Client) {
+				var oDocuments = Client.Documents;
+
+				// Find document by GUID or number
+				var oCWDoc = oDocuments.Get(guid) || oDocuments.Get(num);
+
+				if (oCWDoc) {
+					var aSignoffs = [];
+					for (var nRole = 1; nRole <= G_MAX_ROLES; nRole++) {
+						var sSignoff = oCWDoc.SignoffInitials(nRole)
+						if (sSignoff !== "") {
+							aSignoffs.push(sSignoff);
+						}
+					}
+
+					var oResponse = {
+						"document": {
+							"guid": oCWDoc.CWGUID,
+							"number": oCWDoc.Id,
+							"name": oCWDoc.Name,
+							"type": oCWDoc.Type,
+							"index": oDocuments.Index(oCWDoc.Id),
+							"signoffs": aSignoffs
+						}
+					}
+
+					return HELPERS.constructRet(true, oResponse);
+				}
+			}
+		}
+		return HELPERS.constructRet(false, "Failed to find document.");
+	}
+
+	//Gets all the CW documents
+	function getCWDocuments() {
+		var oClient = Client;
+		if (oClient) {
+			var oDocuments = oClient.Documents;
+
+			var aDocuments = [];
+			var oEnum = new Enumerator(oDocuments);
+			while (!oEnum.atEnd()) {
+				var oCWDoc = oEnum.item();
+
+				var aSignoffs = [];
+				for (var nRole = 1; nRole <= G_MAX_ROLES; nRole++) {
+					var sSignoff = oCWDoc.SignoffInitials(nRole);
+					if (sSignoff != "") {
+						aSignoffs.push(sSignoff);
+					}
+				}
+
+				var oDocument = {
+					"guid": oCWDoc.CWGUID,
+					"number": oCWDoc.Id,
+					"name": oCWDoc.Name,
+					"type": oCWDoc.Type,
+					"index": oDocuments.Index(oCWDoc.Id),
+					"signoffs": aSignoffs
+				}
+				aDocuments.push(oDocument);
+
+				oEnum.moveNext();
+			}
+
+			var oResponse = {
+				"documents": aDocuments
+			};
+
+			return HELPERS.constructRet(true, oResponse);
+		}
+		return HELPERS.constructRet(false, "Failed to get documents.");
+	}
+
+	//Gets the documents in a folder including those in sub folders
+	function getFolderDocs() { //TODO: Fix endpoint, it doesn't work. oDocuments.Get doesn't return the folder for some reason. oDocuments.GetByTemplateDocId works but not convenient to use.
+		var sGUID = Request.QueryString("param1");
+		var sName = Request.QueryString("param2");
+		if (sGUID || sName) {
+			if (Client) {
+				var oDocuments = Client.Documents;
+				var oFolder = oDocuments.Get(sGUID) || oDocuments.Get(sName);
+				if (oFolder && oFolder.HasChildren) {
+					//Attempts to retrieve a folder's index in the Documents using GUID returns -1
+					//and the id of some folders is empty string so can't use that for retrieval.
+					//So, although inefficient, loop through the documents until we find the folder
+					//then continue to loop and collect documents until we reach a document/folder
+					//that has indent depth <= this folder's.
+
+					var nEnd = oDocuments.Count;
+
+					var nStart = -1;
+					for (var nIndex = 1; nIndex <= nEnd; nIndex++) {
+						var oDoc = oDocuments.item(nIndex);
+						if (oDoc.CWGUID == oFolder.CWGUID) {
+							nStart = nIndex + 1;
+							break;
+						}
+					}
+
+					if (nStart > 0) {
+						var nFolderDepth = oFolder.IndentDepth;
+						var aDocuments = [];
+						for (var nIndex = nStart; nIndex <= nEnd; nIndex++) {
+							var oDoc = oDocuments.item(nIndex);
+
+							if (oDoc) {
+								if (oDoc.IndentDepth <= nFolderDepth) {
+									break;
+								}
+
+								// Ignore sub folders, but get their documents
+								if (oDoc.Type != G_DOC_TYPE_FOLDER) {
+									// Add a node for this document
+									var oDocument = {
+										"guid": oDoc.CWGUID,
+										"number": oDoc.Id,
+										"index": oDocuments.Index(oDoc.Id)
+									};
+
+									aDocuments.push(oDocument);
+								}
+							}
+						}
+
+						var oResponse = {
+							"documents": aDocuments
+						};
+
+						return HELPERS.constructRet(true, oResponse);
+					}
+				}
+			}
+		}
+
+		return HELPERS.constructRet(false, "Failed to get folder documents.");
+	}
+
+	//Determines if the current file is a master or client file
+	function isMaster() {
+		var retVal = false;
+
+		if (Client) {
+			//get the file name of the current file, strip off the ext
+			var sClientFullFileName = Client.FileName.toUpperCase();
+			sClientFullFileName = sClientFullFileName.replace(".AC", "");
+
+			//iterate through the template list and check if the current file matches a template file path
+			var oTemplateInfos = Application.TemplateList;
+			var oEnum = new Enumerator(oTemplateInfos);
+			for (; !oEnum.atEnd(); oEnum.moveNext()) {
+				var sTemplatePath = oEnum.item().FilePath.toUpperCase();
+				if (sClientFullFileName == sTemplatePath) {
+					retVal = true;
+					break;
+				} //end if
+			} //end for
+		} //end if
+
+		return HELPERS.constructRet(true, retVal);
+	}
+
+	//Gets the ID of the current user
+	function getCurrentUserId() {
+		var sCurUserID = "";
+		if (Client) {
+			sCurUserID = Client.Security.CurrentUser;
+
+			// SS [DASH-256] - clear username from unwanted chars
+			sCurUserID = sCurUserID.replace(/[\*\?\/\-\|\+<>:\(\)\"]/g, "");
+
+			sCurUserID = sCurUserID;
+
+		} //end if
+
+		return HELPERS.constructRet(true, sCurUserID);
+	}
+
+	//Gets the Working Papers evaluation of an expression
+	function evaluate() {
+		var sRetVal = "";
+
+		var sExpr = Request.QueryString("param1");
+		if (sExpr && sExpr != "") {
+			sExpr = decodeURIComponent(sExpr);
+			sExpr = sExpr.replace(/\[amp;\]/g, "&");
+			sExpr = sExpr.replace(/\[;\]/g, "&");
+
+			if (Client) {
+				try {
+					var eval = Client.Evaluate(sExpr);
+					sRetVal += eval;
+					sRetVal = sRetVal;
+				} //end try
+				catch (e) { }
+			} //end if
+		} //end if
+
+		return sRetVal;
+	}
+
+	function evaluateFormat() {
+		var sRetVal = "";
+
+		var sExpr = Request.QueryString("param1");
+		if (sExpr && sExpr != "") {
+			sExpr = decodeURIComponent(sExpr);
+			sExpr = sExpr.replace(/\[amp;\]/g, "&");
+			sExpr = sExpr.replace(/\[;\]/g, "&");
+
+			if (Client) {
+				try {
+					var eval = Client.Evaluate(sExpr);
+					var isCur = Request.QueryString("isCur1");
+					if (isCur == "1") {
+						eval = formatCurrencyQueryString(eval, 1);
+					}
+
+					sRetVal += eval;
+					sRetVal = sRetVal;
+				} //end try
+				catch (e) { }
+			} //end if
+		} //end if
+
+		return sRetVal;
+	}
+
+	//Gets the Working Papers evaluation of an expression
+	function batchEvaluate() {
+		var sRetVal = "";
+		var sNumExpr = Request.QueryString("param1");
+		var nExpr = parseInt(sNumExpr, 10);
+		if (Client) {
+			for (var n = 1; n <= nExpr; n++) {
+				var sExpr = Request.Form("expr" + n);
+				if (sExpr) {
+					sExpr = decodeURIComponent(sExpr);
+					sExpr = sExpr.replace(/\[amp;\]/g, "&");
+					sExpr = sExpr.replace(/\[;\]/g, "&");
+
+					try {
+						sRetVal += Client.Evaluate(sExpr);
+					} //end try
+					catch (e) { }
+				} //end if
+
+				sRetVal += ",,";
+			} //end for
+
+			sRetVal = sRetVal;
+		} //end if
+
+		return sRetVal;
+	}
+
+	//Gets the Working Papers evaluation of an expression
+	function batchEvaluateFormat() {
+		var sRetVal = "";
+		var sNumExpr = Request.QueryString("param1");
+		var nExpr = parseInt(sNumExpr, 10);
+		if (Client) {
+			for (var n = 1; n <= nExpr; n++) {
+				var sExpr = Request.Form("expr" + n);
+				if (sExpr) {
+					sExpr = decodeURIComponent(sExpr);
+					sExpr = sExpr.replace(/\[amp;\]/g, "&");
+					sExpr = sExpr.replace(/\[;\]/g, "&");
+
+					try {
+						var eval = Client.Evaluate(sExpr);
+						var isCur = Request.Form("isCur" + n);
+						if (isCur == "1") {
+							eval = formatCurrencyForm(eval, n);
+						}
+						sRetVal += eval;
+					} //end try
+					catch (e) { }
+				} //end if
+
+				sRetVal += ",,";
+			} //end for
+
+			sRetVal = sRetVal;
+		} //end if
+
+		return sRetVal;
+	}
+
+	function formatCurrencyForm(str, i) {
+
+		var numDigitsAfterDecimal = 0;
+		if (Request.Form("nDAD" + i)) {
+			numDigitsAfterDecimal = parseInt(Request.Form("nDAD" + i), 10);
+		}
+
+		var includeLeadingDigit = 1;
+		if (Request.Form("iLD" + i)) {
+			includeLeadingDigit = parseInt(Request.Form("iLD" + i), 10);
+		}
+
+		var useParensForNegativeNumbers = 0;
+		if (Request.Form("uPFNN" + i)) {
+			useParensForNegativeNumbers = parseInt(Request.Form("uPFNN" + i), 10);
+		}
+
+		var groupDigits = 3;
+		if (Request.Form("gD" + i)) {
+			groupDigits = parseInt(Request.Form("gD" + i), 10);
+		}
+
+		var noDollarSign = 0;
+		if (Request.Form("nDS" + i)) {
+			noDollarSign = parseInt(Request.Form("nDS" + i), 10);
+		}
+
+		return FormatCurrency(str, numDigitsAfterDecimal, includeLeadingDigit, useParensForNegativeNumbers, groupDigits, noDollarSign);
+
+	}
+
+	function formatCurrencyQueryString(str, i) {
+
+		var numDigitsAfterDecimal = 0;
+		if (Request.QueryString("nDAD" + i)) {
+			numDigitsAfterDecimal = parseInt(Request.QueryString("nDAD" + i), 10);
+		}
+
+		var includeLeadingDigit = 1;
+		if (Request.QueryString("iLD" + i)) {
+			includeLeadingDigit = parseInt(Request.QueryString("iLD" + i), 10);
+		}
+
+		var useParensForNegativeNumbers = 0;
+		if (Request.QueryString("uPFNN" + i)) {
+			useParensForNegativeNumbers = parseInt(Request.QueryString("uPFNN" + i), 10);
+		}
+
+		var groupDigits = 3;
+		if (Request.QueryString("gD" + i)) {
+			groupDigits = parseInt(Request.QueryString("gD" + i), 10);
+		}
+
+		var noDollarSign = 0;
+		if (Request.QueryString("nDS" + i)) {
+			noDollarSign = parseInt(Request.QueryString("nDS" + i), 10);
+		}
+
+		return FormatCurrency(str, numDigitsAfterDecimal, includeLeadingDigit, useParensForNegativeNumbers, groupDigits, noDollarSign);
+	}
+
+	function __getCurrentTemplateName() {
+		var app = new ActiveXObject("CaseWare.Application");
+		var oClient = app.ActiveClient;
+		var sTemplateFilePath = oClient.FilePath + oClient.TemplateVersionInfo.TemplateID;
+		var aTemplateList = app.TemplateList;
+
+		var sTemplateName = "";
+
+		for (var i = 1; i <= aTemplateList.Count; i++) {
+			var oCurrTemplate = aTemplateList.Item(i);
+
+			if (oCurrTemplate.FilePath === sTemplateFilePath) {
+				sTemplateName = oCurrTemplate.Name;
+				break;
+			}
+		}
+
+		return sTemplateName;
+	}
+
+	//Gets the following sytem information:
+	//1. application program path
+	//2. layout folder path
+	//3. current user id
+	//4. whether or not the current file is a master/template file
+	function getSystemInfo() {
+		var oRet = {
+			programPath: getAppProgPath().message,
+			layoutPath: getLayoutPath().message,
+			currentUserId: getCurrentUserId().message,
+			isMaster: isMaster().message,
+			templateName: __getCurrentTemplateName()
+		};
+
+		return HELPERS.constructRet(true, oRet)
+	}
+
+	return {
+		getAppProgPath: getAppProgPath,
+		getLayoutPath: getLayoutPath,
+		getRoles: getRoles,
+		getDocMgrJSON: getDocMgrJSON,
+		getCWDocument: getCWDocument,
+		getCWDocuments: getCWDocuments,
+		getFolderDocs: getFolderDocs,
+		isMaster: isMaster,
+		getCurrentUserId: getCurrentUserId,
+		evaluate: evaluate,
+		evaluateFormat: evaluateFormat,
+		batchEvaluate: batchEvaluate,
+		batchEvaluateFormat: batchEvaluateFormat,
+		formatCurrencyForm: formatCurrencyForm,
+		formatCurrencyQueryString: formatCurrencyQueryString,
+		getSystemInfo: getSystemInfo
+	};
+
+})();
+
+
+  /********************************************/
+ /******** FILE SYSTEM UTIL FUNCTIONS ********/
+/********************************************/
+
+var FILE_SYSTEM_ENDPOINTS = (function() {
+	var DDB_UPLOAD_FOLDER_NAME = "DDB_UPLOAD";
+
+	function openFileDialog(i_sFilePath, i_sPrompt, i_sFilter) {
+		var sFilePathSanitized = HELPERS.sanitizeInputString(HELPERS.expandFilePath(i_sFilePath));
+		var sPromptSanitized = HELPERS.sanitizeInputString(i_sPrompt);
+		var sFilterSanitized = HELPERS.sanitizeInputString(i_sFilter);
+		var sFilter = (i_sFilter) ? sFilterSanitized : "All Files (*.*)|*.*";
+	
+		var sFilePath = FileDialog(1, sFilePathSanitized, sFilter, "", sPromptSanitized); // Returns "" if user cancels
+		
+		if (sFilePath) {
+			return HELPERS.constructRet(true, sFilePath);
+		} 
+		
+		return HELPERS.constructRet(false, "File dialog was cancelled");
+	}
+	
+	function uploadFile(i_sSourceFilePath, i_sSubDir) {
+		var sSourceFilePathSanitzed = HELPERS.sanitizeInputString(HELPERS.expandFilePath(i_sSourceFilePath));
+		var sSourceFullFileName = HELPERS.getFullFileName(sSourceFilePathSanitzed);
+		var sSubDirSanitized = (i_sSubDir) ? "\\" + HELPERS.sanitizeInputString(i_sSubDir): "";
+	
+		var sUniqueID = HELPERS.generateUniqueID("upload");
+		var sUploadFileName = sUniqueID + "_" + sSourceFullFileName;
+	
+		// var sUploadFilePath = SERVER_ROOT_STRING + "\\" + DDB_UPLOAD_FOLDER_NAME + sSubDirSanitized + "\\" + sUploadFileName;
+		var sUploadFilePath = "cw:" + "\\" + DDB_UPLOAD_FOLDER_NAME + sSubDirSanitized + "\\" + sUploadFileName;
+		
+		return copyFile(i_sSourceFilePath, sUploadFilePath);
+	}
+	
+	// Determines if a file exists 
+	function fileExists(i_sFilePath) {
+		var sFilePathSanitized = HELPERS.sanitizeInputString(HELPERS.expandFilePath(i_sFilePath));
+
+		var bSuccess = false;
+		if (sFilePathSanitized && sFilePathSanitized != "") {
+			var oFSO = new ActiveXObject("Scripting.FileSystemObject");
+			bSuccess = !!oFSO.FileExists(sFilePathSanitized);
+			oFSO = null;
+		}
+	
+		if (bSuccess) {
+			return HELPERS.constructRet(bSuccess, "File exists");
+		} else {
+			return HELPERS.constructRet(bSuccess, "File does not exist");
+		}
+	}
+
+	function folderExists(i_sFolderPath) {
+		var sFolderPathSanitized = HELPERS.sanitizeInputString(HELPERS.expandFilePath(i_sFolderPath));
+
+		var bSuccess = false;
+		if (sFolderPathSanitized && sFolderPathSanitized != "") {
+			var oFSO = new ActiveXObject("Scripting.FileSystemObject");
+			bSuccess = !!oFSO.FolderExists(sFolderPathSanitized);
+			oFSO = null;
+		}
+
+		if (bSuccess) {
+			return HELPERS.constructRet(bSuccess, "Folder exists");
+		} else {
+			return HELPERS.constructRet(bSuccess, "Folder does not exist");
+		}
+	}
+
+	function createFolder(i_sFolderPath) {
+		var sFolderPathSanitized = HELPERS.sanitizeInputString(HELPERS.expandFilePath(i_sFolderPath));
+
+		var bSuccess = false;
+		if (sFolderPathSanitized && sFolderPathSanitized != "") {
+			var oFSO = new ActiveXObject("Scripting.FileSystemObject");
+			if (!oFSO.FolderExists(i_sFolderPath)) {
+				try {
+					oFSO.CreateFolder(sFolderPathSanitized);
+					bSuccess = true;
+				} catch(err) {
+					bSuccess = false;
+				}
+				oFSO = null;
+			}
+		}
+
+		if (bSuccess) {
+			return HELPERS.constructRet(bSuccess, "Created folder");
+		} else {
+			return HELPERS.constructRet(bSuccess, "Unable to create folder");
+		}
+	}
+
+	function copyFolder(i_sSourceFolderPath, i_sTargetFolderPath) {
+		var sSourceFolderPathSanitized = HELPERS.sanitizeInputString(HELPERS.expandFilePath(i_sSourceFolderPath));
+		var sTargetFolderPathSanitized = HELPERS.sanitizeInputString(HELPERS.expandFilePath(i_sTargetFolderPath));
+
+		var bSuccess = false;
+		if (sSourceFolderPathSanitized && sSourceFolderPathSanitized != "" && sTargetFolderPathSanitized && sTargetFolderPathSanitized != "") {
+			var oFSO = new ActiveXObject("Scripting.FileSystemObject");
+
+			if (!oFSO.FolderExists(sSourceFolderPathSanitized)) {
+				return HELPERS.constructRet(false, "Failed to copy folder, source folder does not exist");
+			}
+
+			if (!oFSO.FolderExists(sTargetFolderPathSanitized)) {
+				try {
+					oFSO.CreateFolder(sTargetFolderPathSanitized);
+				} catch(err) {
+					return HELPERS.constructRet(false, "Failed to copy folder, unable to create target folder");
+				}
+			}
+
+			try {
+				oFSO.CopyFolder(sSourceFolderPathSanitized, sTargetFolderPathSanitized);
+				bSuccess = true; 
+			} catch(err) {
+				bSuccess = false; 
+			}
+
+			oFSO = null;
+		}
+
+		if (bSuccess) {
+			return HELPERS.constructRet(bSuccess, "Copied folder successfully");
+		} else {
+			return HELPERS.constructRet(bSuccess, "Failed to copy folder");
+		}
+	}
+
+	function deleteFolder(i_sFolderPath) {
+		var sFolderPathSanitized = HELPERS.sanitizeInputString(HELPERS.expandFilePath(i_sFolderPath));
+
+		var bSuccess = false;
+		if (sFolderPathSanitized && sFolderPathSanitized != "") {
+			var oFSO = new ActiveXObject("Scripting.FileSystemObject");
+			if (oFSO.FolderExists(i_sFolderPath)) {
+				bSuccess = !!oFSO.DeleteFolder(sFolderPathSanitized);
+				oFSO = null;
+			}
+		}
+
+		if (bSuccess) {
+			return HELPERS.constructRet(bSuccess, "Deleted folder");
+		} else {
+			return HELPERS.constructRet(bSuccess, "Unable to delete folder");
+		}
+	}
+	
+	// Deletes a file. Returns true if successfully deleted, false otherwise
+	function deleteFile(i_sFilePath) {
+		var sFilePathSanitized = HELPERS.sanitizeInputString(HELPERS.expandFilePath(i_sFilePath));
+
+		var bSuccess = false;
+		var oFSO = new ActiveXObject("Scripting.FileSystemObject");
+		if (sFilePathSanitized && sFilePathSanitized != "" && oFSO.FileExists(sFilePathSanitized)) {
+			oFSO.DeleteFile(sFilePathSanitized, 1);
+			bSuccess = oFSO.FileExists(sFilePathSanitized) ? false : true;
+		}
+		oFSO = null;
+	
+		if (bSuccess) {
+			return HELPERS.constructRet(bSuccess, "Deleted file successfully");
+		} else {
+			return HELPERS.constructRet(bSuccess, "Source file not found");
+		}
+	}
+	
+	// Copies a file to a specified location. Returns true if successfully copied, false otherwise
+	function copyFile(i_sFrom, i_sTo) {
+		var sFromSanitized = HELPERS.sanitizeInputString(HELPERS.expandFilePath(i_sFrom));
+		var sToSanitized = HELPERS.sanitizeInputString(HELPERS.expandFilePath(i_sTo));
+
+		var oFSO = new ActiveXObject("Scripting.FileSystemObject");
+		var bSuccess = false;
+		if (sFromSanitized && sToSanitized && oFSO.FileExists(sFromSanitized) && sToSanitized != "") {
+			var oFile = oFSO.GetFile(sFromSanitized);
+			if (oFile) {
+				try {
+					oFile.Copy(sToSanitized, 1); // Overwrite
+					bSuccess = true;
+				} catch(e) {}
+			}
+		}
+		oFSO = null;
+
+	
+		if (bSuccess) {
+			var sDestPath = HELPERS.compressFilePath(sToSanitized);
+			return HELPERS.constructRet(bSuccess, sDestPath);
+		} else {
+			return HELPERS.constructRet(bSuccess, "Source file not found");
+		}
+	}
+	
+	// Returns the contents of a file
+	function getFileContents(i_sFilePath) {
+		var sFilePathSanitized = HELPERS.sanitizeInputString(HELPERS.expandFilePath(i_sFilePath));
+	
+		var sContents = "";
+		var oFSO = new ActiveXObject("Scripting.FileSystemObject");
+		if (sFilePathSanitized && sFilePathSanitized != "" && oFSO.FileExists(sFilePathSanitized)) {
+			var oFile = oFSO.OpenTextFile(sFilePathSanitized, 1, false); // Open for reading
+	
+			if (oFile) {
+				try {
+					while (!oFile.AtEndOfStream) {
+						var sNewLine = (sContents) ? "\n" : "";
+						sContents = sContents + sNewLine + oFile.ReadLine();
+					}
+					sContents = sContents;
+				}
+				catch (e) { }
+				finally {
+					if (oFile) {
+						oFile.Close();
+					} 
+				}
+			}
+	
+			return HELPERS.constructRet(true, sContents);
+		}
+		oFSO = null;
+	
+		return HELPERS.constructRet(false, "Unable to read file");
+	}
+	
+	// Saves text to the full file path specified
+	function saveToFile(i_sFilePath, i_sContent) {
+		var sFilePathSanitized = HELPERS.sanitizeInputString(HELPERS.expandFilePath(i_sFilePath));
+		var sContentSanitized = HELPERS.sanitizeContent(i_sContent);
+
+		var bSuccess = false;
+		var oFSO = new ActiveXObject("Scripting.FileSystemObject");
+		if (sContentSanitized && sContentSanitized != "" && sFilePathSanitized && sFilePathSanitized != "") {
+			var oFile;
+			try {
+				oFile = oFSO.OpenTextFile(sFilePathSanitized, 2, true); /// Open for writing, create if does not exist	
+				oFile.WriteLine(sContentSanitized);
+				bSuccess = true;
+			} catch(e) {}
+			finally {
+				if (oFile) {
+					oFile.Close();
+				}
+			}
+		}
+		oFSO = null;
+	
+		if (bSuccess) {
+			return HELPERS.constructRet(bSuccess, "Saved file successfully");
+		} else {
+			return HELPERS.constructRet(bSuccess, "Unable to save file");
+		}
+	}
+	
+	// Returns a comma-separated list of the files in a folder (ignoring any subfolders)
+	function getFileList() {
+	
+		var aFileList = [];
+		var oFSO = new ActiveXObject("Scripting.FileSystemObject");
+	
+		var sFolderPath = Request.QueryString("param1");
+	
+		if (sFolderPath && sFolderPath != "" && oFSO.FolderExists(sFolderPath)) {
+			var oFolder = oFSO.GetFolder(sFolderPath);
+	
+			if (oFolder) {
+				try {
+					var oEnum = new Enumerator(oFolder.files);
+	
+					for (; !oEnum.atEnd(); oEnum.moveNext()) {
+						aFileList.push(oEnum.item().Name);
+					} //end for
+	
+				} //end try
+				catch (e) { }
+	
+			} //end if
+	
+		} //end if
+	
+		oFSO = null;
+	
+		return aFileList;
+	}
+	
+	// Similar to getFileList() but filtered to files with a specific extension
+	function getFilteredFileList() {
+		var sContents = "";
+		var oFSO = new ActiveXObject("Scripting.FileSystemObject");
+	
+		var sFolderPath = Request.QueryString("param1");
+		var sExt = Request.QueryString("param2");
+	
+		sContents = getFileList(sExt, sFolderPath, oFSO);
+	
+		oFSO = null;
+		return sContents;
+	}
+	
+	// Similar to getFileList() but filtered to files with a specific extension
+	function getFilteredFileList2() {
+		var sContents = "";
+		var oFSO = new ActiveXObject("Scripting.FileSystemObject");
+	
+		var sFolderPath = Request.QueryString("param1");
+		var sFolderPath2 = Request.QueryString("param2");
+		var sExt = Request.QueryString("param3");
+	
+		sContents = getFileList(sExt, sFolderPath, oFSO);
+		sContents2 = getFileList(sExt, sFolderPath2, oFSO);
+	
+		oFSO = null;
+		return sContents + (sContents2 != "" ? ',' + sContents2 : "");
+	}
+	
+	
+	function getFileListWithExtension(sExt, sFolderPath, oFSO) {
+	
+		var aFileList = [];
+	
+		if (sExt && sExt != "" && sFolderPath && sFolderPath != "" && oFSO.FolderExists(sFolderPath)) {
+			var oFolder = oFSO.GetFolder(sFolderPath);
+			if (oFolder) {
+				try {
+					var oEnum = new Enumerator(oFolder.files);
+					sExt = "." + sExt;
+	
+					for (; !oEnum.atEnd(); oEnum.moveNext()) {
+						var sItem = oEnum.item().Name;
+	
+						if (sItem.indexOf(sExt) > 0) {
+							aFileList.push(sItem);
+	
+						} //end if
+	
+					} //end for
+	
+				} //end try
+				catch (e) { }
+	
+			} //end if
+	
+			return aFileList;
+		}
+	}
+
+	return {
+		openFileDialog: openFileDialog,
+		uploadFile: uploadFile,
+		fileExists: fileExists,
+		folderExists: folderExists,
+		createFolder: createFolder,
+		deleteFolder: deleteFolder,
+		copyFolder: copyFolder,
+		deleteFile: deleteFile,
+		copyFile: copyFile,
+		getFileContents: getFileContents,
+		saveToFile: saveToFile,
+		getFileList: getFileList,
+		getFilteredFileList: getFilteredFileList,
+		getFilteredFileList2: getFilteredFileList2,
+		getFileListWithExtension: getFileListWithExtension
+	};
+})();
+
+
+  /*************************************/
+ /******** REACT DDB ENDPOINTS ********/
+/*************************************/
+
+var REACT_DDB_ENDPOINTS = (function() {
+	var DATA_FOLDER_NAME = "DDB_DATA";
+	var MASTER_DATA_FOLDER_NAME = "__master__";
+
+	var GENERAL_DATA_FILE = "general.json";
+	var THEME_DATA_FILE = "themes.json";
+	var WIDGET_PRESET_DATA_FILE = "widgetPresets.json";
+	var TAB_DATA_FILE = "tabs.json";
+
+	var GENERAL_DATA_FILE_PATH = SERVER_ROOT_STRING + "\\" + DATA_FOLDER_NAME + "\\" + GENERAL_DATA_FILE;
+	var THEME_DATA_FILE_PATH = SERVER_ROOT_STRING + "\\" + DATA_FOLDER_NAME + "\\" + THEME_DATA_FILE;
+	var WIDGET_PRESET_DATA_FILE_PATH = SERVER_ROOT_STRING + "\\" + DATA_FOLDER_NAME + "\\" + WIDGET_PRESET_DATA_FILE;
+	var TAB_DATA_FILE_PATH = SERVER_ROOT_STRING + "\\" + DATA_FOLDER_NAME + "\\" + TAB_DATA_FILE;
+
+	var DATA_FOLDER_PATH = SERVER_ROOT_STRING + "\\" + DATA_FOLDER_NAME;
+	var MASTER_DATA_FOLDER_PATH = DATA_FOLDER_PATH +  "\\" + MASTER_DATA_FOLDER_NAME;
+
+	var GLOBAL_FILE_SETTINGS = [WIDGET_PRESET_DATA_FILE];
+
+	function _getDataFileContents(i_sFilePath, i_sErrorMessage) {
+		var oContentRet = FILE_SYSTEM_ENDPOINTS.getFileContents(i_sFilePath);
+
+		if (oContentRet.success) {
+			return HELPERS.constructRet(true, JSON.parse(oContentRet.message));
+		} else {
+			return HELPERS.constructRet(false, i_sErrorMessage);
+		}
+	}
+
+	function _checkAndCreateClientDataFile(i_sUserID) {
+		var sUserFolderDirectory = DATA_FOLDER_PATH + "\\" + i_sUserID;
+		var bClientDataExists = FILE_SYSTEM_ENDPOINTS.folderExists(sUserFolderDirectory).success;
+
+		if (!bClientDataExists) {
+			var oFolderCreated = FILE_SYSTEM_ENDPOINTS.copyFolder(MASTER_DATA_FOLDER_PATH, sUserFolderDirectory);
+
+			// Remove global settings files from the newly created client folder
+			for (var i = 0; i < GLOBAL_FILE_SETTINGS.length; i++) {
+				var sCurrGlobalFile = GLOBAL_FILE_SETTINGS[i];
+				var sRemoveFilePath = sUserFolderDirectory + "\\" + sCurrGlobalFile;
+				FILE_SYSTEM_ENDPOINTS.deleteFile(sRemoveFilePath);
+			}
+
+			if (!oFolderCreated.success) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	function _loadDataResource(i_sResourceFile, i_sErrorMessage) {
+		var isMaster = CASEWARE_UTIL_ENDPOINTS.isMaster().message;
+		var isGlobalSettingFile = HELPERS.arrayIndexOf(GLOBAL_FILE_SETTINGS, i_sResourceFile) > -1;
+
+		if (isMaster || isGlobalSettingFile) {
+			var sMasterResourceFilePath = MASTER_DATA_FOLDER_PATH + "\\" + i_sResourceFile;
+			return _getDataFileContents(sMasterResourceFilePath, i_sErrorMessage);
+		}
+
+		var sUserID = CASEWARE_UTIL_ENDPOINTS.getCurrentUserId().message;
+		if (sUserID === MASTER_DATA_FOLDER_NAME) {
+			return HELPERS.constructRet(false, "Restricted user ID '" + sUserID + "'");
+		}
+
+		if (!_checkAndCreateClientDataFile(sUserID)) {
+			return HELPERS.constructRet(false, "Failed to create new client data folder");
+		}
+
+		var sUserFolderDirectory = DATA_FOLDER_PATH + "\\" + sUserID;
+		var sUserResourceFilePath = sUserFolderDirectory + "\\" + i_sResourceFile;
+
+		return _getDataFileContents(sUserResourceFilePath, i_sErrorMessage);
+	}
+
+	function _saveDataResource(i_sResourceFile, i_sResourceContent) {
+		var isMaster = CASEWARE_UTIL_ENDPOINTS.isMaster().message;
+		var isGlobalSettingFile = HELPERS.arrayIndexOf(GLOBAL_FILE_SETTINGS, i_sResourceFile) > -1;
+
+		if (isMaster || isGlobalSettingFile) {
+			var sMasterResourceFilePath = MASTER_DATA_FOLDER_PATH + "\\" + i_sResourceFile;
+			return FILE_SYSTEM_ENDPOINTS.saveToFile(sMasterResourceFilePath, i_sResourceContent);
+		}
+
+		var sUserID = CASEWARE_UTIL_ENDPOINTS.getCurrentUserId().message;
+		if (sUserID === MASTER_DATA_FOLDER_NAME) {
+			return HELPERS.constructRet(false, "Restricted user ID '" + sUserID + "'");
+		}
+
+		if (!_checkAndCreateClientDataFile(sUserID)) {
+			return HELPERS.constructRet(false, "Failed to create new client data folder");
+		}
+
+		var sUserFolderDirectory = DATA_FOLDER_PATH + "\\" + sUserID;
+		var sUserResourceFilePath = sUserFolderDirectory + "\\" + i_sResourceFile;
+
+		return FILE_SYSTEM_ENDPOINTS.saveToFile(sUserResourceFilePath, i_sResourceContent);
+	}
+
+	function loadGeneralData() {
+		return _loadDataResource(GENERAL_DATA_FILE, "Unable to load general data");
+	}
+
+	function loadAllThemeData() {
+		return _loadDataResource(THEME_DATA_FILE, "Unable to load theme data");
+	}
+
+	function loadAllWidgetPresetData() {
+		return _loadDataResource(WIDGET_PRESET_DATA_FILE, "Unable to load widget preset data");
+	}
+
+	function loadAllTabData() {
+		return _loadDataResource(TAB_DATA_FILE, "Unable to load tab data");
+	}
+
+	function loadAllData() {
+		var oGeneralDataRet = loadGeneralData();
+		var oThemeDataRet = loadAllThemeData();
+		var oWidgetPresetRet = loadAllWidgetPresetData();
+		var oTabRet = loadAllTabData();
+
+		if (!oGeneralDataRet.success || !oThemeDataRet.success || !oWidgetPresetRet.success || !oTabRet.success) {
+			return HELPERS.constructRet(false, "Unable to load all data");
+		}
+
+		var oRet = {
+			generalData: oGeneralDataRet.message,
+			themeData: oThemeDataRet.message,
+			widgetPresetData: oWidgetPresetRet.message,
+			tabData: oTabRet.message
+		};
+
+		return HELPERS.constructRet(true, oRet);
+	}
+
+	function _findByID(i_sID, i_oAllData) {
+		if (!i_oAllData) { // Handle if an undefined object gets passed in
+			return null;
+		}
+
+		for (var sKey in i_oAllData) {
+			if (!i_oAllData.hasOwnProperty(sKey)) continue;
+
+			var oCurrData = i_oAllData[sKey];
+
+			if (oCurrData.id === i_sID) {
+				return oCurrData;
+			}
+		}
+
+		return null;
+	}
+
+	function loadThemeData(i_sThemeID) {
+		var sThemeIDSanitized = HELPERS.sanitizeInputString(i_sThemeID);
+		var oThemes = loadAllThemeData().message.themes;
+
+		var oTheme = _findByID(sThemeIDSanitized, oThemes);
+		return (oTheme) ? HELPERS.constructRet(true, oTheme) 
+			: HELPERS.constructRet(false, "Theme '" + sThemeIDSanitized + "' not found");
+	}
+
+	function loadWidgetPresetData(i_sWidgetPresetID) {
+		var sWidgetPresetIDSanitized = HELPERS.sanitizeInputString(i_sWidgetPresetID);
+		var oWidgetPresets = loadAllWidgetPresetData().message;
+
+		var oWidgetPreset = _findByID(sWidgetPresetIDSanitized, oWidgetPresets);
+		return (oWidgetPreset) ? HELPERS.constructRet(true, oWidgetPreset) 
+			: HELPERS.constructRet(false, "Widget preset '" + sWidgetPresetIDSanitized + "' not found");
+	}
+
+	function loadTabData(i_sTabID) {
+		var sTabIDSanitized = HELPERS.sanitizeInputString(i_sTabID);
+		var oTabs = loadAllTabData().message;
+
+		if (!oTabs) {
+			return HELPERS.constructRet(false, "Unable to load tab data");
+		}
+
+		var oTab = _findByID(sTabIDSanitized, oTabs.tabs);
+		return (oTab) ? HELPERS.constructRet(true, oTab) 
+			: HELPERS.constructRet(false, "Tab '" + sTabIDSanitized + "' not found");
+	}
+
+	function saveTheme(i_sThemeData) {
+		var sThemeDataSanitized = HELPERS.sanitizeInputString(i_sThemeData);
+		var oThemeData = JSON.parse(sThemeDataSanitized);
+		var sID = oThemeData.id;
+		var oAllThemeData = loadAllThemeData().message;
+
+		if (!oAllThemeData.themes[sID]) {
+			return HELPERS.constructRet(false, "Theme '" + sID + "' does not exist");
+		}
+
+		// Update theme 
+		oAllThemeData.themes[sID] = oThemeData;
+
+		// Rewrite theme data
+		var bSuccess = _saveDataResource(THEME_DATA_FILE, JSON.stringify(oAllThemeData)).success;
+
+		return (bSuccess) ? HELPERS.constructRet(true, "Saved theme successfully") : HELPERS.constructRet(false, "Failed to save theme");
+	}
+
+	function saveWidgetPreset(i_sWidgetPresetData) {
+		var sWidgetPresetDataSanitized = HELPERS.sanitizeInputString(i_sWidgetPresetData);
+		var oWidgetPresetData = JSON.parse(sWidgetPresetDataSanitized);
+		var sID = oWidgetPresetData.id;
+		var oAllWidgetPresets = loadAllWidgetPresetData().message;
+
+		if (!oAllWidgetPresets[sID]) {
+			return HELPERS.constructRet(false, "Widget preset '" + sID + "' does not exist");
+		}
+
+		// Update widget preset
+		oAllWidgetPresets[sID] = oWidgetPresetData;
+
+		// Rewrite widget preset data
+		var bSuccess = _saveDataResource(WIDGET_PRESET_DATA_FILE, JSON.stringify(oAllWidgetPresets)).success;
+
+		return (bSuccess) ? HELPERS.constructRet(true, "Saved widget preset successfully") : HELPERS.constructRet(false, "Failed to save widget preset");
+	}
+
+	function saveTab(i_sTabData) {
+		var sTabDataSanitized = HELPERS.sanitizeInputString(i_sTabData);
+		var oTabData = JSON.parse(sTabDataSanitized);
+		var sID = oTabData.id;
+		var oAllTabData = loadAllTabData().message;
+
+		if (!oAllTabData.tabs[sID]) {
+			return HELPERS.constructRet(false, "Tab '" + sID + "' does not exist");
+		}
+
+		// Update tab
+		oAllTabData.tabs[sID] = oTabData;
+
+		// Rewrite tab data
+		var bSuccess = _saveDataResource(TAB_DATA_FILE, JSON.stringify(oAllTabData)).success;
+
+		return (bSuccess) ? HELPERS.constructRet(true, "Saved tab successfully") : HELPERS.constructRet(false, "Failed to save tab");
+	}
+
+	function addTheme(i_sThemeData) {
+		var sThemeDataSanitized = HELPERS.sanitizeInputString(i_sThemeData);
+		var oThemeData = JSON.parse(sThemeDataSanitized);
+		var sID = oThemeData.id;
+		var oAllThemeData = loadAllThemeData().message;
+
+		if (oAllThemeData.themes[sID]) {
+			return HELPERS.constructRet(false, "Theme '" + sID + "' already exists");
+		}
+
+		// Add theme
+		oAllThemeData.themes[sID] = oThemeData;
+
+		// Rewrite theme data
+		var bSuccess = _saveDataResource(THEME_DATA_FILE, JSON.stringify(oAllThemeData)).success;
+
+		return (bSuccess) ? HELPERS.constructRet(true, "Added theme successfully") : HELPERS.constructRet(false, "Failed to add theme");
+	}
+
+	function addWidgetPreset(i_sWidgetPresetData) {
+		var sWidgetPresetDataSanitized = HELPERS.sanitizeInputString(i_sWidgetPresetData);
+		var oWidgetPresetData = JSON.parse(sWidgetPresetDataSanitized);
+		var sID = oWidgetPresetData.id;
+		var oAllWidgetPresets = loadAllWidgetPresetData().message;
+
+		if (oAllWidgetPresets[sID]) {
+			return HELPERS.constructRet(false, "Widget preset '" + sID + "' already exists");
+		}
+
+		// Add widget preset
+		oAllWidgetPresets[sID] = oWidgetPresetData;
+
+		// Rewrite widget preset data
+		var bSuccess = _saveDataResource(WIDGET_PRESET_DATA_FILE, JSON.stringify(oAllWidgetPresets)).success;
+
+		return (bSuccess) ? HELPERS.constructRet(true, "Added widget preset successfully") : HELPERS.constructRet(false, "Failed to add widget preset");
+	}
+
+	function addTab(i_sTabData) {
+		var sTabDataSanitized = HELPERS.sanitizeInputString(i_sTabData);
+		var oTabData = JSON.parse(sTabDataSanitized);
+		var sID = oTabData.id;
+		var oAllTabData = loadAllTabData().message;
+
+		if (oAllTabData.tabs[sID]) {
+			return HELPERS.constructRet(false, "Tab '" + sID + "' already exists");
+		}
+
+		// Add the tab
+		oAllTabData.tabs[sID] = oTabData;
+		// Add to tab order
+		oAllTabData.tabOrder.push(sID);
+
+		// Rewrite tab data
+		var bSuccess = _saveDataResource(TAB_DATA_FILE, JSON.stringify(oAllTabData)).success;
+
+		return (bSuccess) ? HELPERS.constructRet(true, "Added tab successfully") : HELPERS.constructRet(false, "Failed to add tab");
+	}
+
+	function removeTheme(i_sThemeID) {
+		var sThemeIDSanitized = HELPERS.sanitizeInputString(i_sThemeID);
+		var oAllThemeData = loadAllThemeData().message;
+
+		if (!oAllThemeData.themes[sThemeIDSanitized]) {
+			return HELPERS.constructRet(false, "Theme '" + sThemeIDSanitized + "' does not exist");
+		}
+
+		// Remove the theme
+		delete oAllThemeData.themes[sThemeIDSanitized]; 
+
+		// Rewrite theme data
+		var bSuccess = _saveDataResource(THEME_DATA_FILE, JSON.stringify(oAllThemeData)).success;
+
+		return (bSuccess) ? HELPERS.constructRet(true, "Removed theme successfully") : HELPERS.constructRet(true, "Failed to remove theme");
+	}
+
+	function removeWidgetPreset(i_sWidgetPresetID) {
+		var sWidgetPresetIDSanitized = HELPERS.sanitizeInputString(i_sWidgetPresetID);
+		var oAllWidgetPresets = loadAllWidgetPresetData().message;
+
+		if (!oAllWidgetPresets[sWidgetPresetIDSanitized]) {
+			return HELPERS.constructRet(false, "Widget preset '" + sWidgetPresetIDSanitized + "' does not exist");
+		}
+
+		// Remove the widget preset
+		delete oAllWidgetPresets[sWidgetPresetIDSanitized];
+
+		// Rewrite widget preset data
+		var bSuccess = _saveDataResource(WIDGET_PRESET_DATA_FILE, JSON.stringify(oAllWidgetPresets)).success;
+
+		return (bSuccess) ? HELPERS.constructRet(true, "Removed widget preset successfully") : HELPERS.constructRet(true, "Failed to remove widget preset");
+	}
+
+	function removeTab(i_sTabID) {
+		var sTabIDSanitized = HELPERS.sanitizeInputString(i_sTabID);
+		var oAllTabData = loadAllTabData().message;
+		var nIdx = HELPERS.arrayIndexOf(oAllTabData.tabOrder, sTabIDSanitized);
+
+		if (!oAllTabData.tabs[sTabIDSanitized] || nIdx < 0) {
+			return HELPERS.constructRet(false, "Tab '" + sTabIDSanitized + "' does not exist");
+		}
+
+		// Remove tab
+		delete oAllTabData.tabs[sTabIDSanitized];
+		// Remove tab from tab order
+		oAllTabData.tabOrder.splice(nIdx, 1);
+
+		// Rewrite tab data
+		var bSuccess = _saveDataResource(TAB_DATA_FILE, JSON.stringify(oAllTabData)).success;
+
+		return (bSuccess) ? HELPERS.constructRet(true, "Removed tab successfully") : HELPERS.constructRet(true, "Failed to remove tab");
+	}
+
+	function setTabOrder(i_sTabOrder) {
+		var aTabOrder = JSON.parse(HELPERS.sanitizeInputString(i_sTabOrder));
+		var oAllTabData = loadAllTabData().message;
+
+		for (var i=0; i < aTabOrder.length; i++) {
+			var sCurrTabID = aTabOrder[i];
+			if (!oAllTabData.tabs[sCurrTabID]) {
+				return HELPERS.constructRet(false, "Tab ID '" + sTabIDSanitized + "' in tab order does not exist");
+			}
+		}
+		
+		oAllTabData.tabOrder = aTabOrder;
+
+		// Rewrite tab data
+		var bSuccess = _saveDataResource(TAB_DATA_FILE, JSON.stringify(oAllTabData)).success;
+
+		return (bSuccess) ? HELPERS.constructRet(true, "Updated tab order successfully") : HELPERS.constructRet(true, "Failed to update tab order");
+	}
+
+	function setCurrentTab(i_sTabID) {
+		var sTabIDSanitized = HELPERS.sanitizeInputString(i_sTabID);
+		var oAllTabData = loadAllTabData().message;
+
+		if (!oAllTabData.tabs[sTabIDSanitized]) {
+			return HELPERS.constructRet(false, "Tab '" + sTabIDSanitized + "' does not exist");
+		}
+
+		// Update curr tab
+		oAllTabData.currTabID = i_sTabID;
+
+		// Rewrite tab data
+		var bSuccess = _saveDataResource(TAB_DATA_FILE, JSON.stringify(oAllTabData)).success;
+
+		return (bSuccess) ? HELPERS.constructRet(true, "Updated current tab successfully") : HELPERS.constructRet(true, "Failed to update current tab");
+	}
+
+	function addNamespace(i_sNamespaceData) {
+		var sNamespaceDataSanitized = HELPERS.sanitizeInputString(i_sNamespaceData);
+		var oNamespaceData = JSON.parse(sNamespaceDataSanitized);
+		var oAllThemeData = loadAllThemeData().message;
+
+		if (oAllThemeData.namespaces[oNamespaceData.id]) {
+			return HELPERS.constructRet(false, "Namespace '" + oNamespaceData.id + "' already exists");
+		}
+
+		// Update theme data
+		oAllThemeData.namespaces[oNamespaceData.id] = oNamespaceData.theme;
+		
+
+		// Rewrite theme data
+		var bSuccess = _saveDataResource(THEME_DATA_FILE, JSON.stringify(oAllThemeData)).success;
+
+		return (bSuccess) ? HELPERS.constructRet(true, "Added namespace successfully") : HELPERS.constructRet(true, "Failed to add namespace");
+	}
+
+	function saveNamespace(i_sNamespaceData) {
+		var sNamespaceDataSanitized = HELPERS.sanitizeInputString(i_sNamespaceData);
+		var oNamespaceData = JSON.parse(sNamespaceDataSanitized);
+		var oAllThemeData = loadAllThemeData().message;
+
+		if (!oAllThemeData.namespaces[oNamespaceData.id]) {
+			return HELPERS.constructRet(false, "Namespace '" + oNamespaceData.id + "' does not exist");
+		}
+
+		// Update theme data
+		oAllThemeData.namespaces[oNamespaceData.id] = oNamespaceData.theme;
+
+		// Rewrite theme data
+		var bSuccess = _saveDataResource(THEME_DATA_FILE, JSON.stringify(oAllThemeData)).success;
+
+		return (bSuccess) ? HELPERS.constructRet(true, "Saved namespace successfully") : HELPERS.constructRet(true, "Failed to save namespace");
+	}
+
+	function removeNamespace(i_sNamespaceID) {
+		var sNamespaceIDSanitized = HELPERS.sanitizeInputString(i_sNamespaceID);
+		var oAllThemeData = loadAllThemeData().message;
+
+		if (!oAllThemeData.namespaces[sNamespaceIDSanitized]) {
+			return HELPERS.constructRet(false, "Namespace '" + sNamespaceIDSanitized + "' does not exist");
+		}
+
+		// Remove namespace
+		delete oAllThemeData.namespaces[sNamespaceNameSanitized];
+
+		// Rewrite theme data
+		var bSuccess = _saveDataResource(THEME_DATA_FILE, JSON.stringify(oAllThemeData)).success;
+
+		return (bSuccess) ? HELPERS.constructRet(true, "Removed namespace successfully") : HELPERS.constructRet(true, "Failed to remove namespace");
+	}
+
+	function setDefaultNamespace(i_sNamespaceID) {
+		var sNamespaceIDSanitized = HELPERS.sanitizeInputString(i_sNamespaceID);
+		var oAllThemeData = loadAllThemeData().message;
+
+		if (!oAllThemeData.namespaces[sNamespaceIDSanitized]) {
+			return HELPERS.constructRet(false, "Namespace '" + sNamespaceIDSanitized + "' does not exist");
+		}
+
+		// Update default namespace
+		oAllThemeData.defaultNamespace = sNamespaceIDSanitized;
+
+		// Rewrite theme data
+		var bSuccess = _saveDataResource(THEME_DATA_FILE, JSON.stringify(oAllThemeData)).success;
+
+		return (bSuccess) ? HELPERS.constructRet(true, "Updated default namespace successfully") : HELPERS.constructRet(true, "Failed to update default namespace");
+	}
+
+	function _saveMarginal(i_sMarginalName, i_oNewMarginalConfig) {
+		var oAllGeneralData = loadGeneralData().message;
+
+		// Update marginal config
+		oAllGeneralData[i_sMarginalName] = i_oNewMarginalConfig;
+
+		// Rewrite general data
+		var bSuccess = _saveDataResource(GENERAL_DATA_FILE, JSON.stringify(oAllGeneralData)).success;
+
+		return (bSuccess) ? HELPERS.constructRet(true, "Updated " + i_sMarginalName + " successfully") 
+			: HELPERS.constructRet(true, "Failed to update " + i_sMarginalName);
+	}
+
+	function saveHeader(i_sNewHeaderConfig) {
+		var sNewHeaderConfigSanitized = HELPERS.sanitizeInputString(i_sNewHeaderConfig);
+		var oNewHeaderConfig = JSON.parse(sNewHeaderConfigSanitized);
+
+		return _saveMarginal("header", oNewHeaderConfig);
+	}
+
+	function saveFooter(i_sNewFooterConfig) {
+		var sNewFooterConfigSanitized = HELPERS.sanitizeInputString(i_sNewFooterConfig);
+		var oNewFooterConfig = JSON.parse(sNewFooterConfigSanitized);
+
+		return _saveMarginal("footer", oNewFooterConfig);
+	}
+
+	return {
+		loadAllData: loadAllData,
+		loadGeneralData: loadGeneralData,
+		loadAllThemeData: loadAllThemeData,
+		loadAllWidgetPresetData: loadAllWidgetPresetData,
+		loadAllTabData: loadAllTabData,
+		loadThemeData: loadThemeData,
+		loadWidgetPresetData: loadWidgetPresetData,
+		loadTabData: loadTabData,
+		saveTheme: saveTheme,
+		saveWidgetPreset: saveWidgetPreset,
+		saveTab: saveTab,
+		addTheme: addTheme,
+		addWidgetPreset: addWidgetPreset,
+		addTab: addTab,
+		removeTheme: removeTheme,
+		removeWidgetPreset: removeWidgetPreset,
+		removeTab: removeTab,
+		setTabOrder: setTabOrder,
+		setCurrentTab: setCurrentTab,
+		addNamespace: addNamespace,
+		saveNamespace: saveNamespace,
+		removeNamespace: removeNamespace,
+		setDefaultNamespace: setDefaultNamespace,
+		saveHeader: saveHeader,
+		saveFooter: saveFooter
+	};
+})();
+
+
+  /********************************/
+ /******** REQUEST HANDLER *******/
+/********************************/
+
+// Get function name from Request and call the appropriate function
+// Each function will retrieve the appropriate parameters from Request
+var sFunc = Request.QueryString("func");
+if (sFunc && sFunc != "") {
+	var oResp = "null";
+	Response.Clear();
+
+	switch (sFunc) {
+		// ---------------------------
+		// --- React DDB Endpoints ---
+		// ---------------------------
+
+		case "loadAllData":
+			oResp = REACT_DDB_ENDPOINTS.loadAllData();
+			break;
+
+		case "loadGeneralData":
+			oResp = REACT_DDB_ENDPOINTS.loadGeneralData();
+			break;
+
+		case "loadAllThemeData":
+			oResp = REACT_DDB_ENDPOINTS.loadAllThemeData();
+			break;
+
+		case "loadAllWidgetPresetData":
+			oResp = REACT_DDB_ENDPOINTS.loadAllWidgetPresetData();
+			break;
+
+		case "loadAllTabData":
+			oResp = REACT_DDB_ENDPOINTS.loadAllTabData();
+			break;
+
+		case "loadThemeData":
+			oResp = REACT_DDB_ENDPOINTS.loadThemeData(Request.QueryString("param1"));
+			break;
+
+		case "loadWidgetPresetData":
+			oResp = REACT_DDB_ENDPOINTS.loadWidgetPresetData(Request.QueryString("param1"));
+			break;
+
+		case "loadTabData":
+			oResp = REACT_DDB_ENDPOINTS.loadTabData(Request.QueryString("param1"));
+			break;
+
+		case "saveTheme":
+			oResp = REACT_DDB_ENDPOINTS.saveTheme(Request.QueryString("param1"));
+			break;
+
+		case "saveWidgetPreset":
+			oResp = REACT_DDB_ENDPOINTS.saveWidgetPreset(Request.QueryString("param1"));
+			break;
+
+		case "saveTab":
+			oResp = REACT_DDB_ENDPOINTS.saveTab(Request.QueryString("param1"));
+			break;
+
+		case "addTheme":
+			oResp = REACT_DDB_ENDPOINTS.addTheme(Request.QueryString("param1"));
+			break;
+
+		case "addWidgetPreset":
+			oResp = REACT_DDB_ENDPOINTS.addWidgetPreset(Request.QueryString("param1"));
+			break;
+
+		case "addTab":
+			oResp = REACT_DDB_ENDPOINTS.addTab(Request.QueryString("param1"));
+			break;
+
+		case "removeTheme":
+			oResp = REACT_DDB_ENDPOINTS.removeTheme(Request.QueryString("param1"));
+			break;
+
+		case "removeWidgetPreset":
+			oResp = REACT_DDB_ENDPOINTS.removeWidgetPreset(Request.QueryString("param1"));
+			break;
+
+		case "removeTab":
+			oResp = REACT_DDB_ENDPOINTS.removeTab(Request.QueryString("param1"));
+			break;
+
+		case "setTabOrder":
+			oResp = REACT_DDB_ENDPOINTS.setTabOrder(Request.QueryString("param1"));
+			break;
+
+		case "setCurrentTab":
+			oResp = REACT_DDB_ENDPOINTS.setCurrentTab(Request.QueryString("param1"));
+			break;
+
+		case "addNamespace":
+			oResp = REACT_DDB_ENDPOINTS.addNamespace(Request.QueryString("param1"));
+			break;
+		
+		case "saveNamespace":
+			oResp = REACT_DDB_ENDPOINTS.saveNamespace(Request.QueryString("param1"));
+			break;
+
+		case "removeNamespace":
+			oResp = REACT_DDB_ENDPOINTS.removeNamespace(Request.QueryString("param1"));
+			break;
+
+		case "setDefautNamespace":
+			oResp = REACT_DDB_ENDPOINTS.setDefaultNamespace(Request.QueryString("param1"));
+			break;
+
+		case "saveHeader":
+			oResp = REACT_DDB_ENDPOINTS.saveHeader(Request.QueryString("param1"));
+			break;
+		
+		case "saveFooter":
+			oResp = REACT_DDB_ENDPOINTS.saveFooter(Request.QueryString("param1"));
+			break;
+
+        // -------------------------
+        // --- File System Utils ---
+        // -------------------------
+        
+		case "openFileDialog":
+            oResp = FILE_SYSTEM_ENDPOINTS.openFileDialog(Request.QueryString("param1"), Request.QueryString("param2"), Request.QueryString("param3"));
+            break;
+
+		case "uploadFile":
+            oResp = FILE_SYSTEM_ENDPOINTS.uploadFile(Request.QueryString("param1"), Request.QueryString("param2"));
+            break;
+
+        case "fileExists":
+			oResp = FILE_SYSTEM_ENDPOINTS.fileExists(Request.QueryString("param1"));
+			break;
+
+		case "folderExists":
+			oResp = FILE_SYSTEM_ENDPOINTS.folderExists(Request.QueryString("param1"));
+			break;
+
+		case "createFolder":
+			oResp = FILE_SYSTEM_ENDPOINTS.createFolder(Request.QueryString("param1"));
+			break;
+
+		case "copyFolder": 
+			oResp = FILE_SYSTEM_ENDPOINTS.copyFolder(Request.QueryString("param1"), Request.QueryString("param2"));
+			break;
+
+		case "deleteFolder": 
+			oResp = FILE_SYSTEM_ENDPOINTS.deleteFolder(Request.QueryString("param1"));
+			break;
+
+		case "delFile":
+			oResp = FILE_SYSTEM_ENDPOINTS.deleteFile(Request.QueryString("param1"));
+			break;
+
+		case "copyFile":
+			oResp = FILE_SYSTEM_ENDPOINTS.copyFile(Request.QueryString("param1"), Request.QueryString("param2"));
+			break;
+
+		case "fileConts":
+			oResp = FILE_SYSTEM_ENDPOINTS.getFileContents(Request.QueryString("param1"));
+			break;
+
+		case "saveFile":
+			oResp = FILE_SYSTEM_ENDPOINTS.saveToFile(Request.QueryString("param1"), Request.QueryString(CSP_REQ_POST_KEY));
+			break;
+
+		case "fileList":
+			oResp = FILE_SYSTEM_ENDPOINTS.getFileList();
+			break;
+
+		case "filtFileList":
+			oResp = FILE_SYSTEM_ENDPOINTS.getFilteredFileListWithExtension();
+			break;
+
+		case "filtFileList2":
+			oResp = FILE_SYSTEM_ENDPOINTS.getFilteredFileList2();
+			break;
+
+        // ----------------------
+        // --- CaseWare Utils ---
+        // ----------------------
+
+		case "progPath":
+            oResp = CASEWARE_UTIL_ENDPOINTS.getAppProgPath();
+			break;
+
+		case "layoutPath":
+            oResp = CASEWARE_UTIL_ENDPOINTS.getLayoutPath();
+			break;
+
+		case "roles":
+            oResp = CASEWARE_UTIL_ENDPOINTS.getRoles();
+			break;
+
+		case "docMgrJSON":
+            oResp = CASEWARE_UTIL_ENDPOINTS.getDocMgrJSON();
+			break;
+
+		case "getCWDoc":
+            oResp = CASEWARE_UTIL_ENDPOINTS.getCWDocument();
+			break;
+
+		case "getCWDocs":
+            oResp = CASEWARE_UTIL_ENDPOINTS.getCWDocuments();
+			break;
+
+		case "getFolderDocs":
+            oResp = CASEWARE_UTIL_ENDPOINTS.getFolderDocs();
+			break;
+
+		case "isMaster":
+            oResp = CASEWARE_UTIL_ENDPOINTS.isMaster();
+			break;
+
+		case "curUser":
+            oResp = CASEWARE_UTIL_ENDPOINTS.getCurrentUserId();
+			break;
+
+		case "eval":
+            oResp = CASEWARE_UTIL_ENDPOINTS.evaluateFormat();
+			break;
+
+		case "evalf":
+            oResp = CASEWARE_UTIL_ENDPOINTS.evaluateFormat();
+			break;
+
+		case "evalB":
+            oResp = CASEWARE_UTIL_ENDPOINTS.batchEvaluateFormat();
+			break;
+
+		case "evalBf":
+            oResp = CASEWARE_UTIL_ENDPOINTS.batchEvaluateFormat();
+			break;
+
+		case "sysInfo":
+            oResp = CASEWARE_UTIL_ENDPOINTS.getSystemInfo();
+			break;
+
+		default:
+			oResp = HELPERS.constructRet(false, "Endpoint '" + sFunc + "' not found");
+
+	} //end switch
+
+	HELPERS.setJSONResponseType();
+	Response.Write(JSON.stringify(oResp));
+	Response.End();
+} //end if
+
+%>

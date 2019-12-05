@@ -1,0 +1,30 @@
+@import "styles/functions/index.scss";
+
+.ColorPicker {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+
+    .ColorPicker__color {
+        cursor: pointer;
+        margin: 0.6rem;
+        height: 1.75rem;
+        width: 1.75rem;
+        border-radius: 0.3rem;
+        transition: all 0.2s;
+
+        // -----------------
+        // --- Modifiers ---
+        // -----------------
+
+        &:hover {
+            transform: scale(1.2);
+        }
+
+        &:not(.selected) {
+            border: 2px solid theme-link("ColorPicker", "accent-color", "primary");
+        }
+    }
+}

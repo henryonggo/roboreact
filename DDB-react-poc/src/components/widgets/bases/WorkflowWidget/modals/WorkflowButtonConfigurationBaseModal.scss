@@ -1,0 +1,34 @@
+@import "styles/functions/index.scss";
+@import "styles/mixins/index.scss";
+
+.WorkflowButtonConfigurationBaseModal {
+    & .ConfigurationSection {
+    }
+
+    & .MappingsSection {
+        & .SelectedMappings {
+            .FormSection__header {
+                margin-bottom: 0;
+            }
+        }
+
+        & .SearchField {
+            & .InputField__title {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+    }
+
+    // TODO: remove the hack
+    & .DraggableList__list-item.dragging-hack {
+        // TODO: this is a hack being used due to a bug in the library...
+        // Hopefully it will be fixed sometime in the future
+        --corrected-top: 0px;
+        --corrected-left: 0px;
+
+        top: var(--corrected-top) !important;
+        left: var(--corrected-left) !important;
+    }
+}

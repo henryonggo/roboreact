@@ -1,0 +1,19 @@
+@import "styles/mixins/index.scss";
+@import "styles/functions/index.scss";
+
+.CheckboxList {
+    width: 100%;
+    height: 100%;
+
+    overflow: auto;
+
+    @include StandardModalScrollBar("CheckboxList__scrollbar");
+
+    & .CheckboxList__list-item {
+        cursor: pointer;
+    }
+
+    & .CheckboxList__remove-button, .CheckboxList__extension-item {
+        @include SetIconSize(0.9rem);
+    }
+}

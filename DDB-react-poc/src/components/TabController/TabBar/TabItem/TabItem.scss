@@ -1,0 +1,77 @@
+@import "styles/functions/index.scss";
+@import "styles/mixins/index.scss";
+
+.TabItem {
+    min-width: 5rem;
+    width: 8.4rem;
+
+    height: 100%;
+    position: relative;
+
+    z-index: 2;
+
+    cursor: pointer;
+
+    // This hides tab names that are too long
+    overflow: hidden; 
+
+    & > .TabItem__container {
+        padding: 0 .6rem 0 .6rem;
+
+        height: 100%;
+        width: 100%;
+
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        border-bottom: 1px solid transparent; // Hide the border by default
+
+        $transition-speed: .2s;
+        transition: color $transition-speed, background-color $transition-speed, border-bottom $transition-speed;
+
+        overflow: hidden;
+
+        & .TabItem__input {
+            $margin-between-items: 0.3rem;
+
+            flex-grow: 1;
+            flex-shrink: 1;
+
+            // Cut off text overflow with ellipsis
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+
+            margin-right: $margin-between-items;
+        }
+
+        & .TabItem__close-icon {
+            @include StandardIconButtonStyles("TabItem__icon", 0.9rem);
+
+            flex-shrink: 0;
+            flex-grow: 0;
+        }
+
+    }
+
+    &:not(.TabItem--selected):hover > .TabItem__container {
+        background-color: theme-link("TabItem", "selected-color", "secondary", 0.3);
+    }
+
+    &.TabItem--selected > .TabItem__container {
+        color: theme-link("TabItem", "text-color", "primary");
+        background-color: theme-link("TabItem", "selected-color", "primary", 0.3);
+        border-bottom: 1px solid theme-link("TabItem", "accent-color", "secondary");
+
+        z-index: 3;
+    }
+
+    &.TabItem--dragging > .TabItem__container {
+        background-color: theme-link("TabItem", "selected-color", "secondary", 0.3);
+    }
+
+    &.TabItem--clear-anims > .TabItem__container {
+        transition: all 0s ease 0s;
+    }
+}

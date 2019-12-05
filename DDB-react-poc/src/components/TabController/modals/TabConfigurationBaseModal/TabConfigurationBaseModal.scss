@@ -1,0 +1,61 @@
+@import "styles/mixins/index.scss";
+
+.TabConfigModal {
+    // max-width: 30rem;
+
+    & .FormSection:last-child {
+        margin-bottom: 0 !important;
+    }
+
+    // & label {
+    //     &.align {
+    //         text-align: left;
+    //     }
+
+    //     display: block;
+    //     margin-bottom: .3rem;
+
+    //     & input {
+    //         margin-left: .3rem;
+    //     }
+    // }
+
+    // & .TabConfigModal__text-input-label {
+    //     margin-left: 1rem;
+    //     margin-right: 1rem;
+
+    //     & input {
+    //         @include StandardInputStyles();
+
+    //         &[type="number"] {
+    //             max-width: 5rem;
+    //         }
+
+    //         &[type="text"] {
+    //             margin-top: 0.5rem;
+    //             margin-left: 0.6rem;
+    //         }
+
+    //         width: 100%;
+    //     }
+    // }
+    
+    & .ConfirmationButtons {
+        align-self: flex-end;
+
+        & > * {
+            margin-left: .3rem;
+        }
+    }
+
+    // TODO: remove the hack
+    & .DraggableList__list-item.dragging-hack {
+        // TODO: this is a hack being used due to a bug in the library...
+        // Hopefully it will be fixed sometime in the future
+        --corrected-top: 0px;
+        --corrected-left: 0px;
+
+        top: var(--corrected-top) !important;
+        left: var(--corrected-left) !important;
+    }
+}

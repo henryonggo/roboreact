@@ -1,0 +1,26 @@
+@import "styles/mixins/index.scss";
+
+.WorkflowLaunchMappingModal {
+    & .MappingLauncher {
+        & .Mapping {
+            display: flex;
+            cursor: pointer;
+
+            & > .Mapping__label {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+
+                & > .Mapping__label--number {
+                    @include DocumentNumberLabel(0.9rem);
+                }
+
+                & > .Mapping__label--name {
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    overflow: hidden;
+                }
+            }
+        }
+    }
+}

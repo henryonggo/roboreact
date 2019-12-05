@@ -1,0 +1,52 @@
+@import "styles/mixins/index.scss";
+
+.WidgetPresetConfigurationBaseModal {
+    // & label {
+    //     &.align {
+    //         text-align: left;
+    //     }
+
+    //     display: block;
+    //     margin-bottom: .3rem;
+
+    //     & input {
+    //         margin-left: .3rem;
+    //     }
+    // }
+
+    & .WidgetPresetConfigurationBaseModal__text-input-label {
+        margin-left: 1rem;
+        margin-right: 1rem;
+
+        & input {
+            @include StandardInputStyles();
+
+            &[type="number"] {
+                max-width: 5rem;
+            }
+
+            &[type="text"] {
+                margin-top: 0.5rem;
+                margin-left: 0.6rem;
+            }
+
+            &:not([type="checkbox"]) {
+                width: 100%;
+            }
+        }
+    }
+
+    & .WidgetPresetConfigurationBaseModal__tag-item-list {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    & .WidgetPresetConfigurationBaseModal__tags-section {
+        margin-top: 0.7rem;
+    }
+
+    & .WidgetPresetConfigurationBaseModal__widget-content {
+        margin-top: 0.7rem;
+    }
+}

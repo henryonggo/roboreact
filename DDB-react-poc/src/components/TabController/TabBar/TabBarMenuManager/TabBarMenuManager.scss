@@ -1,0 +1,34 @@
+.TabBarMenuManager {
+    margin: 6px;
+    display: flex;
+    align-items: center;
+    font-size: 100%;
+
+    //CSSTransition classes.
+    & .TabBarMenuManager-enter,
+    & .TabBarMenuManager-exit.TabBarMenuManager-exit-active {
+        opacity: 0;
+        transition: opacity 0.2s;
+
+        & .HamburgerMenu__item {
+            opacity: 0;
+            padding: 0 0 0 7px;
+            border-bottom: 0px solid rgb(30, 30, 30);
+            transition: all 0.2s;
+        }
+    }
+
+    & .TabBarMenuManager-enter.TabBarMenuManager-enter-active,
+    & .TabBarMenuManager-enter-done,
+    & .TabBarMenuManager-exit {
+        opacity: 1;
+        transition: opacity 0.2s;
+
+        & .HamburgerMenu__item {
+            opacity: 1;
+            padding: 7px;
+            border-bottom: 2px solid rgb(30, 30, 30);
+            transition: all 0.2s;
+        }
+    }
+}

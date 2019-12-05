@@ -1,0 +1,159 @@
+@import "styles/constants/index.scss";
+@import "styles/mixins/index.scss";
+@import "styles/functions/index.scss";
+
+.WidgetWrapper {
+    height: 100%;
+
+    color: theme-link("widget", "text-color", "primary");
+
+    border-radius: $rounding-amount;
+
+    z-index: 0;
+
+    position: relative;
+
+    // Setup the spoof shadow
+    // Note: this was done because transition is already being used by RGL
+    // Also, it turns out that this way is more performant
+    &::after {
+        content: "";
+
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+
+        pointer-events: none;
+        z-index: -1;
+
+        box-shadow: 0 5px 7px -2px rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        transition: opacity 0.2s ease-in-out;
+    }
+
+    // Show the spoof shadow while dragging
+    &.react-draggable-dragging::after {
+        opacity: 1;
+    }
+
+    & .WidgetWrapper__container {
+        height: 100%;
+
+        display: flex;
+        flex-direction: column;
+
+        opacity: 1;
+        transition: opacity 0.2s;
+
+        // Status class
+        &.WidgetWrapper--invisible {
+            opacity: 0;
+        }
+    }
+
+    & .WidgetWrapper__handle {
+        flex-shrink: 0;
+        flex-grow: 0;
+
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+
+        align-items: center;
+
+        padding: 0.4rem 10px 0.4rem 10px;
+        border-radius: $rounding-amount $rounding-amount 0 0;
+
+        color: theme-link("widget", "text-color", "secondary");
+        background-color: theme-link("widget", "accent-color", "primary");
+        
+        overflow: hidden;
+
+        cursor: grab;
+    }
+
+    // Close button
+    & .WidgetWrapper__close-btn {
+        display: inherit;
+
+        @include StandardIconButtonStyles("widget__icon", 0.8rem);
+    }
+
+    & .WidgetWrapper__content {
+        display: flex;
+        flex-grow: 1;
+        flex-shrink: 1;
+        min-height: 0;
+        height: 100%;
+
+        position: relative;
+
+        border-radius: 0 0 $rounding-amount $rounding-amount;
+
+        background-color: theme-link("widget", "bg-color", "primary");
+
+        padding: 12px;
+
+        & .WidgetWrapper__content-overlay {
+            display: none;
+
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+
+            z-index: 50;
+
+            border-radius: 0 0 $rounding-amount $rounding-amount;
+        }
+    }
+
+    // -----------------------------
+    // --- Static Mode Overrides ---
+    // -----------------------------
+
+    // Handle styles for static widget
+    &.static .WidgetWrapper__handle {
+        cursor: inherit; // Remove pointer cursor
+
+        // Set to the default bg color
+        background-color: theme-link("widget", "bg-color", "primary");
+    }
+
+    // Hide the close button
+    &.static .WidgetWrapper__close-btn {
+        display: none;
+    }
+
+    // ---------------------
+    // --- RGL Overrides ---
+    // ---------------------
+
+    & .react-resizable-handle {
+        $offset-padding: 5px;
+
+        padding: 0 $offset-padding $offset-padding 0;
+
+        &::after {
+            right: $offset-padding;
+            bottom: $offset-padding;
+        }
+
+        // Apply the theme to this resize handle
+        @include ThemeResizeHandle("widget__resize");
+    }
+
+    // -----------------
+    // --- Modifiers ---
+    // -----------------
+    &.resizing {
+        & .WidgetWrapper__content {
+            & .WidgetWrapper__content-overlay {
+                display: initial;
+            }
+        }
+    }
+}

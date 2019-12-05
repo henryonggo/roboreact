@@ -1,0 +1,14 @@
+@import "styles/mixins/index.scss";
+
+.ButtonBase {
+    @include ClearUIStyles();
+
+    pointer-events: initial;
+
+    // -----------------
+    // --- Modifiers ---
+    // -----------------
+    &.disabled {
+        pointer-events: none;
+    }
+}

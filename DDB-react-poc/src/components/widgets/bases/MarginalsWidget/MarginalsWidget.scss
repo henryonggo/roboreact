@@ -1,0 +1,49 @@
+@import "styles/constants/index.scss";
+@import "styles/mixins/index.scss";
+@import "styles/functions/index.scss";
+
+
+.MarginalsWidget {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    
+    flex-shrink: 0;
+
+    align-items: center;
+
+    padding-left: $margin-indent;
+    padding-right: $margin-indent;
+    padding-bottom: .5rem;
+
+    background-color: theme-link("MarginalsWidget", "bg-color", "primary");
+    color: theme-link("MarginalsWidget", "text-color", "primary");
+
+    & > .MarginalsWidget__main {
+        & .MarginalsWidget__logo {
+            width: 5rem;
+        }
+    
+        & .MarginalsWidget__title {
+            font-weight: bold;
+        }
+    
+        & .MarginalsWidget__title, & .MarginalsWidget__template-type {
+            // Vertical center
+            @include V_Align(relative);
+    
+            display: inline-block;
+    
+            font-size: 1.3rem;
+        }
+
+        & .MarginalsWidget__copyright {
+            color: theme-link("MarginalsWidget", "text-color", "secondary");
+        }
+    }
+
+    & .MarginalsWidget__date {
+        font-size: 1.1rem;    
+    }
+}

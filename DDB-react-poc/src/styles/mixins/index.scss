@@ -1,0 +1,183 @@
+@import "styles/functions/index.scss";
+
+@import "styles/mixins/elementQueryManager.scss";
+@import "styles/mixins/mediaQueryManager.scss";
+
+// Horizontal and vertical alignment mixin
+@mixin HV_Align($pos-type) {
+    position: $pos-type;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+// Horizontal only alignment mixin
+@mixin H_Align($pos-type) {
+    position: $pos-type;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+// Vertical only alignment mixin
+@mixin V_Align($pos-type) {
+    position: $pos-type;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+// Applies the css property theme to the resize handle
+@mixin ThemeResizeHandle($base: "BASE") {
+    &::after {
+        border-right-color: theme-link(quote($base), "text-color", "primary");
+        border-bottom-color: theme-link(quote($base), "text-color", "primary");
+    }
+}
+
+@mixin ClearUIStyles {
+    background: none;
+    color: inherit;
+    border: none;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+    outline: inherit;
+}
+
+@mixin ClearButtonStyles {
+    // Reset styles
+    border: none;
+    text-decoration: none;
+    outline: none;
+}
+
+@mixin ClearInputStyles() {
+    outline: none;
+    border: none;
+}
+
+@mixin StandardInputStyles($base: "input") {
+    @include ClearInputStyles();
+
+    border-radius: 3px;
+    padding: 2px 5px 2px 5px;
+
+    box-shadow: 0px 0px 5px 5px theme-link(quote($base), "selected-color", "primary", 0);
+
+    transition: box-shadow 0.2s ease-in-out;
+
+    &:focus {
+        box-shadow: 0px 0px 0px 2px theme-link(quote($base), "selected-color", "primary", 0.8);
+    }
+}
+
+// A mixin for icons that use the standard icon colorings
+@mixin StandardIconButtonStyles($base: "BASE", $icon-size: 0.8rem, $disabled-class: "disabled") {
+    @include SetIconSize($icon-size);
+
+    cursor: pointer;
+    transition: color 0.2s;
+
+    color: theme-link($base, "text-color", "primary");
+
+    &:hover,
+    &:focus {
+        color: theme-link($base, "icon-color", "primary");
+    }
+
+    &:active {
+        color: theme-link($base, "icon-color", "secondary");
+    }
+
+    &.#{$disabled-class} {
+        cursor: initial;
+        pointer-events: none;
+        color: theme-link($base, "text-color", "secondary");
+    }
+}
+
+// NOTE: Make sure to place this in the checkbox selector and make sure an override element is adjacent to it and referenced
+@mixin StandardCheckboxStylesOverride($override-selector: "label", $size: 0.9rem, $base: "BASE") {
+    position: absolute;
+    opacity: 0;
+    width: $size;
+    height: $size;
+
+    $selector: unquote($override-selector);
+
+    & + #{$selector} {
+        position: relative;
+        cursor: pointer;
+        padding: 0;
+
+        width: $size;
+        height: $size;
+
+        background-color: theme-link($base, "accent-color", "primary");
+
+        transition: background-color 0.2s, box-shadow 0.2s;
+    }
+
+    &:focus + #{$selector} {
+        background-color: theme-link($base, "selected-color", "secondary");
+    }
+
+    &:checked + #{$selector} {
+        background-color: theme-link($base, "selected-color", "primary");
+        box-shadow: inset 0 0 0 2px theme-link($base, "accent-color", "primary");
+    }
+
+    &:disabled + #{$selector} {
+        background-color: theme-link($base, "accent-color", "secondary");
+        cursor: auto;
+    }
+}
+
+@mixin StandardModalScrollBar($base: "BASE") {
+    // ------------------------
+    // --- Custom scrollbar ---
+    // ------------------------
+    // Note: this does not work on all browsers (but should in WorkingPapers)
+
+    &::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: theme-link($base, "scrollbar-color", "primary", 0.7);
+
+        box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+
+        &:hover {
+            background-color: theme-link($base, "scrollbar-color", "secondary", 0.7);
+        }
+    }
+}
+
+// A mixin for quickly dealing with setting an icon's size
+// Use this mixin in the wrapper container of the svg icon
+@mixin SetIconSize($length) {
+    width: $length;
+    height: $length;
+
+    & > svg {
+        width: $length;
+        height: $length;
+    }
+}
+
+@mixin DocumentNumberLabel($fontSize: 1rem) {
+    display: flex;
+    align-items: center;
+
+    font-size: $fontSize;
+    height: calc(#{$fontSize} * 1.1);
+    padding: 0 0.2rem 0 0.2rem;
+    margin-right: 0.2rem;
+    border-radius: 0.3rem;
+
+    white-space: nowrap;
+    font-weight: bold;
+
+    background-color: theme-link("BASE", "accent-color", "secondary");
+}

@@ -1,0 +1,9 @@
+@import "styles/functions/index.scss";
+
+.ErrorAssertionModal {
+    // Nothing here right now   
+}
+
+.ErrorAssertionModal__icon {
+    color: theme-link("assertion", "error-color", "primary");
+}

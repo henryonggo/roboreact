@@ -1,0 +1,64 @@
+@import "styles/functions/index.scss";
+@import "styles/mixins/index.scss";
+
+.ToolbarDropdown {
+    & > .ToolbarOption {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        cursor: pointer;
+        padding: 0.25rem;
+
+        background-color: theme-link("RichTextWidgetConfig", "accent-color", "primary");
+        border-radius: 0.1rem;
+
+        & > .ToolbarOption__label {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        & > .ToolbarOption__caret--open {
+            height: 0px;
+            width: 0px;
+            top: 35%;
+            right: 10%;
+            border-bottom: 6px solid currentColor;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            transition: border 0.2s;
+            margin: 0.1rem 0.2rem 0 0;
+        }
+
+        & > .ToolbarOption__caret--closed {
+            height: 0px;
+            width: 0px;
+            top: 35%;
+            right: 10%;
+            border-top: 6px solid currentColor;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            transition: border 0.2s;
+            margin: 0.1rem 0.2rem 0 0;
+        }
+    }
+
+    & > .Dropdown {
+        z-index: 999;
+        background-color: theme-link("RichTextWidgetConfig", "accent-color", "primary");
+        overflow: auto;
+        max-height: 17.5rem;
+        @include StandardModalScrollBar("RichTextWidget__scrollbar");
+
+        & > .Dropdown__item {
+            background-color: theme-link("RichTextWidgetConfig", "accent-color", "primary");
+            border-bottom: none;
+            width: auto;
+
+            &:hover {
+                background-color: theme-link("RichTextWidgetConfig", "accent-color", "secondary");
+            }
+        }
+    }
+}

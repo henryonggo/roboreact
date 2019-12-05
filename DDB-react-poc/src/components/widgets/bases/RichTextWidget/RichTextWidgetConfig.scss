@@ -1,0 +1,88 @@
+@import "styles/functions/index.scss";
+@import "styles/mixins/index.scss";
+@import "./RichTextWidgetEditorMixin.scss";
+
+.RichTextWidgetConfig {
+    * {
+        border: none;
+        box-shadow: none;
+    }
+
+    .RichTextWidget__wrapper {
+        background-color: theme-link("RichTextWidgetConfig", "bg-color", "primary");
+        border-radius: 0.3rem;
+        min-height: 10rem;
+    }
+
+    .disabled {
+        opacity: 0.7;
+    }
+
+    .RichTextWidget__toolbar {
+        background-color: theme-link("RichTextWidgetConfig", "bg-color", "secondary");
+        border-radius: 0.3rem 0.3rem 0 0;
+        margin-bottom: 0;
+        padding: 0 0 0.3rem 0;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        align-content: space-around;
+
+        > div {
+            margin: 0.5rem 0.5rem 0 0.5rem;
+        }
+
+        .rdw-dropdown-optionwrapper {
+            @include StandardModalScrollBar("RichTextWidget__scrollbar");
+            overflow-y: scroll;
+        }
+
+        .rdw-option-wrapper,
+        .rdw-dropdown-wrapper,
+        .rdw-dropdown-optionwrapper {
+            background-color: theme-link("RichTextWidgetConfig", "accent-color", "primary");
+        }
+
+        .rdw-dropdownoption-active,
+        .rdw-dropdownoption-default:hover {
+            background-color: theme-link("RichTextWidgetConfig", "accent-color", "secondary");
+        }
+
+        .rdw-block-wrapper,
+        .rdw-fontsize-wrapper {
+            margin: 0;
+        }
+    }
+
+    .RichTextWidget__editor {
+        border-radius: 0.3rem;
+        padding-top: 0;
+        padding-left: 0.7rem;
+        padding-right: 0.7rem;
+
+        .DraftEditor-editorContainer {
+            z-index: 0;
+        }
+
+        .rdw-image-alignment-options-popup {
+            background-color: theme-link("RichTextWidgetConfig", "accent-color", "primary");
+            display: flex;
+            justify-content: space-between;
+
+            .rdw-option-wrapper.rdw-image-alignment-option {
+                background-color: theme-link("RichTextWidgetConfig", "bg-color", "secondary");
+                padding: 0.7rem;
+
+                &:hover {
+                    background-color: theme-link("RichTextWidgetConfig", "accent-color", "secondary");
+                    box-shadow: none;
+                }
+            }
+        }
+
+        // Editor overrides.
+        @include RichTextWidgetEditorMixin;
+        @include StandardModalScrollBar("RichTextWidget__scrollbar");
+    }
+}

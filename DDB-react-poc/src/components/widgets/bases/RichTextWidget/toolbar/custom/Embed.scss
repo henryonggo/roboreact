@@ -1,0 +1,28 @@
+@import "styles/functions/index.scss";
+
+.EmbedOption {
+    & > .FormWrapper {
+        position: absolute;
+        margin-top: 0.2rem;
+        z-index: 999;
+        width: 25rem;
+        padding: 0.75rem;
+        border-radius: 0.3rem;
+        box-shadow: 1px 1px 7px rgba(10, 10, 10, 0.6);
+        background-color: theme-link("RichTextWidgetConfig", "accent-color", "primary");
+
+        & > .FormWrapper__fields > .FormWrapper__field {
+            margin-bottom: 0.4rem;
+        }
+
+        & > .FormWrapper__buttons {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 0.6rem;
+
+            & > .FormWrapper__button {
+                margin-left: 0.3rem;
+            }
+        }
+    }
+}

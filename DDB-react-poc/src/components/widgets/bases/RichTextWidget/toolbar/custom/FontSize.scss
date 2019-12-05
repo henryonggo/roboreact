@@ -1,0 +1,13 @@
+@import "styles/functions/index.scss";
+
+.FontSizeOption {
+    & .ToolbarDropdown {
+        & > .ToolbarOption {
+            width: 3rem;
+
+            > .ToolbarOption__label {
+                width: 2.5rem;
+            }
+        }
+    }
+}

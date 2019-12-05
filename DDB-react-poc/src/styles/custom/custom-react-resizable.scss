@@ -1,0 +1,47 @@
+// Original: node_modules/react-resizable/css/styles.css
+
+.react-resizable {
+    position: relative;
+}
+
+.react-resizable-handle {
+    $icon-size: 6px;
+    $icon-thickness: 2px;
+    $icon-offset: 2px;
+    $trigger-padding: 4px;
+
+    $trigger-size: $icon-size + 2*$trigger-padding;
+
+    position: absolute;
+    width: $trigger-size;
+    height: $trigger-size;
+    bottom: 0;
+    right: 0;
+    // background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2IDYiIHN0eWxlPSJiYWNrZ3JvdW5kLWNvbG9yOiNmZmZmZmYwMCIgeD0iMHB4IiB5PSIwcHgiIHdpZHRoPSI2cHgiIGhlaWdodD0iNnB4Ij48ZyBvcGFjaXR5PSIwLjMwMiI+PHBhdGggZD0iTSA2IDYgTCAwIDYgTCAwIDQuMiBMIDQgNC4yIEwgNC4yIDQuMiBMIDQuMiAwIEwgNiAwIEwgNiA2IEwgNiA2IFoiIGZpbGw9IiMwMDAwMDAiLz48L2c+PC9zdmc+');
+    background-position: bottom right;
+    background-repeat: no-repeat;
+    background-origin: content-box;
+    box-sizing: border-box;
+    cursor: se-resize;
+
+    z-index: 1;
+
+    &:after {
+        content: "\A0";
+
+        width: $icon-size - $icon-thickness;
+        height: $icon-size - $icon-thickness;
+
+        position: absolute;
+
+        right: $trigger-padding + $icon-offset;
+        bottom: $trigger-padding + $icon-offset;
+
+        border-right: $icon-thickness solid white;
+        border-bottom: $icon-thickness solid white;
+
+        opacity: 0.3;
+
+        z-index: 0;
+    }
+}

@@ -1,0 +1,9 @@
+@import "styles/functions/index.scss";
+
+.WarningAssertionModal {
+    // Nothing here right now    
+}
+
+.WarningAssertionModal__icon {
+    color: theme-link("assertion", "warning-color", "primary");
+}

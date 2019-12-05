@@ -1,0 +1,25 @@
+// Global reset
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: sans-serif;
+    transition: background-color 0.5s;
+}
+
+html {
+    font-size: 100%;
+}
+
+html, body, #app-root {
+    height: 100%;
+}
+
+body > div {
+    font-size: 0.8rem;
+}
+
+// Deals with the extra div that Provider injects
+#app-root > div {
+    height: 100%;
+}

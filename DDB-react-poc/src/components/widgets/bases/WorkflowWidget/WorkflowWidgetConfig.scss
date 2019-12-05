@@ -1,0 +1,52 @@
+@import "styles/functions/index.scss";
+
+.WorkflowWidgetConfig {
+    width: 100%;
+    background-color: darkgreen;
+
+    &.disabled {
+        opacity: 0.6;
+    }
+
+    .WorkflowWidget__layout-config {
+        animation-duration: 0.1s;
+        animation-name: widthhack;
+    }
+
+    // TODO: Remove the hack.
+    // We need this for react-sizeme to detect the size properly on mount.
+    // However we might not need to cause this mounting animation looks pretty cool.
+    @keyframes widthhack {
+        from {
+            width: 0%;
+        }
+
+        to {
+            width: 100%;
+        }
+    }
+
+    .WorkflowWidget__button-wrapper > div {
+        cursor: move;
+        cursor: grab;
+        transition: transform 0.2s;
+    }
+
+    .WorkflowWidget__button-wrapper-selected > div {
+        transform: scale(1.05);
+    }
+
+    .WorkflowWidgetConfigTooltip {
+        font-size: 0.75rem;
+    }
+}
+
+.WorkflowButtonContextMenu {
+    .EditOption {
+    }
+
+    .DeleteOption {
+        color: theme-link("BASE", "error-color", "secondary");
+        font-weight: bold;
+    }
+}

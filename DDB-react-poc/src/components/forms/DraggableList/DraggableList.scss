@@ -1,0 +1,30 @@
+@import "styles/functions/index.scss";
+@import "styles/mixins/index.scss";
+
+.DraggableList {
+    width: 100%;
+    height: 100%;
+
+    overflow: auto;
+
+    & .DraggableList__list-container {
+        list-style-type: none;
+    }
+
+    @include StandardModalScrollBar("DraggableList__scrollbar");
+}
+
+.DraggableList__list-item {
+    list-style-type: none;
+
+    & .DraggableList__remove-button, & .DraggableList__extension-item {
+        
+        @include StandardIconButtonStyles("DraggableList__icon", 0.9rem);
+    }
+
+    & .DraggableList__grab-icon {
+        @include StandardIconButtonStyles("DraggableList__icon", 1.1rem);
+
+        cursor: grab;
+    }
+}

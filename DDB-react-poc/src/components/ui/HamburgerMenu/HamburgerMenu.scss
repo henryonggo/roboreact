@@ -1,0 +1,32 @@
+@import "styles/functions/index.scss";
+
+.HamburgerMenu {
+    position: relative;
+
+    & .HamburgerMenu__button {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        width: 2rem;
+        height: 2rem;
+
+        background-color: rgba(0, 0, 0, 0);
+        transition: background-color 0.2s;
+        border-radius: 0.2rem;
+        cursor: pointer;
+
+        &:hover, &.open {
+            background-color: theme-link("TabBar__hamburger", "accent-color", "primary"); 
+        }
+    }
+
+    & .Dropdown {
+        top: 100%;
+        right: 0;
+
+        & > .Dropdown__item {
+            width: 100vw;
+        }
+    }
+}

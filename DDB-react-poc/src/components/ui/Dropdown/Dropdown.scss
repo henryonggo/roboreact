@@ -1,0 +1,72 @@
+@import "styles/functions/index.scss";
+
+.Dropdown {
+    position: absolute;
+    z-index: 999;
+    margin-top: .25rem;
+    
+    width: auto;
+
+    list-style-type: none;
+    box-shadow: 1px 1px 7px rgba(10, 10, 10, 0.6);
+    border-radius: 0.3rem;
+
+    & > .Dropdown__item {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        align-items: center;
+
+        max-width: 15rem;
+
+        transform-origin: 50% 0 0;
+
+        height: 100%;
+
+        padding: 7px;
+
+        background-color: theme-link("BASE", "bg-color", "secondary");
+
+        border-bottom: 2px solid rgb(30, 30, 30);
+        transition: background-color 0.2s;
+
+        cursor: pointer;
+
+        &:first-child {
+            border-radius: 0.3rem 0.3rem 0 0;
+        }
+
+        &:last-child {
+            border-bottom: 0;
+            border-radius: 0 0 0.3rem 0.3rem;
+        }
+
+        & > .Dropdown__item-icon {
+            flex-grow: 0;
+            flex-shrink: 0;
+
+            margin-right: 8px;
+        }
+
+        & > .Dropdown__item-name {
+            flex-grow: 0;
+            flex-shrink: 1;
+
+            min-width: 5rem;
+        }
+
+        // -----------------
+        // --- Modifiers ---
+        // -----------------
+        &:hover {
+            background-color: theme-link("BASE", "accent-color", "primary");
+        }
+
+        &.disabled {
+            background-color: theme-link("BASE", "bg-color", "primary");
+
+            cursor: initial;
+            pointer-events: none;
+        }
+    }
+}

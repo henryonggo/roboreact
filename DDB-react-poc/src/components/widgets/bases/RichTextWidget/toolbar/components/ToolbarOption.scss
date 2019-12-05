@@ -1,0 +1,21 @@
+@import "styles/functions/index.scss";
+
+.ToolbarOption {
+    display: flex;
+    align-items: center;
+    background-color: theme-link("RichTextWidgetConfig", "accent-color", "primary");
+    border-radius: 0.1rem;
+
+    transition: background-color 0.1s, opacity 0.1s;
+    
+    cursor: pointer;
+}
+
+.ToolbarOption--active {
+    background-color: theme-link("RichTextWidgetConfig", "accent-color", "secondary");
+}
+
+.ToolbarOption--disabled {
+    opacity: 0.4;
+    cursor: initial;
+}

@@ -1,0 +1,52 @@
+@import "styles/functions/index.scss";
+
+.LoadingScreenContainer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    z-index: 500;
+
+    transition: background-color 0.3s;
+
+    & > .LoadingScreenContainer__container {
+        transition: opacity 0.3s;
+
+        width: 100%;
+        height: 100%;
+
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+
+        background-color: rgba(0, 0, 0, 0.5);
+
+        & > .LoadingScreenContainer__status {
+            margin-top: 0.5rem;
+
+            color: theme-link("loading-screen", "text-color", "primary");
+        }
+    }
+
+    // Modifiers
+    &.open {
+        pointer-events: initial;
+        background-color: theme-link("loading-screen", "bg-color", "primary", 0.9);
+
+        & > .LoadingScreenContainer__container {
+            opacity: 1;
+        }
+    }
+
+    &:not(.open) {
+        pointer-events: none;
+        background-color: theme-link("loading-screen", "bg-color", "primary", 0);
+
+        & > .LoadingScreenContainer__container {
+            opacity: 0;
+        }
+    }
+}

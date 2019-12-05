@@ -1,0 +1,13 @@
+@import "styles/functions/index.scss";
+
+.ContextMenuContainer {
+    color: theme-link("BASE", "text-color", "primary");
+
+    & .Dropdown {
+        z-index: 1000;
+
+        & .Dropdown__item {
+            border-bottom: 0;
+        }
+    }
+}

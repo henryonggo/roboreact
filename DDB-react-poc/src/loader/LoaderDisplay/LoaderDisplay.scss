@@ -1,0 +1,34 @@
+@import "styles/functions/index.scss";
+
+.LoaderDisplay {
+    color: theme-link("loader", "text-color", "primary");
+
+    &.LoaderDisplay__error, &.LoaderDisplay__timeout, &.LoaderDisplay__loading {
+        position: relative;
+        width: 100%;
+        height: 100%;
+
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+
+        & *:not(:last-child) {
+            margin-bottom: 0.3rem;
+        }
+    }
+
+    &.LoaderDisplay__error {
+        & .LoaderDisplay__error-text {
+            text-align: center;
+            color: theme-link("loader", "error-color", "primary");
+        }
+    }
+
+    &.LoaderDisplay__timeout {
+        & .LoaderDisplay__timeout-text {
+            text-align: center;
+            color: theme-link("loader", "warning-color", "primary");
+        }
+    }
+}

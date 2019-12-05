@@ -1,0 +1,23 @@
+@import "../../../styles/mixins/index";
+
+.AssertionBaseModal {
+    & .AssertionBaseModal__button {
+        // Nothing needed here
+    }
+}
+
+.AssertionBaseModal__title {
+    position: relative;
+
+    display: flex;
+    align-items: center;
+
+    & svg {
+        width: 1.1rem;
+        height: 1.1rem;
+    }
+
+    & .AssertionBaseModal__title-text:nth-child(2) {
+        margin-left: .3rem;
+    }
+}

@@ -1,0 +1,14 @@
+@import "styles/functions/index.scss";
+@import "styles/mixins/index.scss";
+
+.BaseField {
+    & > .BaseField__error-message {
+        width: 100%;
+        text-align: left;
+        font-size: 0.8rem;
+        
+        margin-bottom: 0.1rem;
+
+        color: theme-link("BaseField", "error-color", "primary");
+    }
+}

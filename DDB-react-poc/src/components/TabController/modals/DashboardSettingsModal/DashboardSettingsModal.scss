@@ -1,0 +1,8 @@
+.DashboardSettingsModal {
+
+    & .DashboardSettingsModal__marginals-content {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-evenly;
+    }
+}

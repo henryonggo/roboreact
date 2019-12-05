@@ -1,0 +1,61 @@
+@import "styles/functions/index.scss";
+
+.ToggleSwitchField__checkbox {
+    position: absolute;
+    opacity: 0;
+
+    $base: "ToggleSwitchField";
+    $field-height: 1rem;
+    $field-width: 2.5rem;
+    $transition-time: 0.2s;
+
+    $handle-size: $field-height;
+
+    & + .ToggleSwitchField {
+        display: inline-block;
+        position: relative;
+        width: $field-width;
+        height: $field-height;
+        border-radius: $field-height;
+
+        cursor: pointer;
+    
+        background-color: theme-link($base, "bg-color", "secondary");
+
+        transition: background-color $transition-time;
+    
+        & > .ToggleSwitchField__handle {
+            display: block;
+            width: $handle-size;
+            height: $handle-size;
+            border-radius: $handle-size;
+
+            cursor: pointer;
+    
+            background-color: theme-link($base, "selected-color", "secondary");
+
+            transition: transform $transition-time, background-color $transition-time;
+        }
+    }
+
+    &:checked + .ToggleSwitchField {
+        background-color: theme-link($base, "bg-color", "primary");
+
+        & > .ToggleSwitchField__handle {
+            transform: translateX($field-width - $handle-size);
+
+            background-color: theme-link($base, "selected-color", "primary");
+        }
+    }
+
+    & + .ToggleSwitchField.disabled {
+        pointer-events: none;
+        cursor: initial;
+
+        background-color: theme-link($base, "accent-color", "primary");
+
+        & > .ToggleSwitchField__handle {
+            background-color: theme-link($base, "accent-color", "secondary");
+        }
+    }
+}

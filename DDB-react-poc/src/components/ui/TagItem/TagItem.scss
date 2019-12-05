@@ -1,0 +1,30 @@
+@import "styles/functions/index.scss";
+@import "styles/mixins/index.scss";
+
+.TagItem {
+    display: flex;
+    align-items: center;
+
+    margin-right: 0.5rem;
+    padding: 0.3rem;
+    border-radius: 0.2rem;
+
+    background-color: theme-link("tag", "button-color", "primary", 1);
+
+    & .TagItem__content {
+        flex-grow: 1;
+        flex-shrink: 1;
+
+        // Cut off text overflow with ellipsis
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        overflow: hidden;
+    }
+
+    & .TagItem__close-button {
+        flex-shrink: 0;
+        flex-grow: 0;
+
+        @include StandardIconButtonStyles("tag", 0.9rem);
+    }
+}

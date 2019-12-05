@@ -1,0 +1,11 @@
+@import "styles/mixins/index.scss";
+@import "styles/functions/index.scss";
+
+.Checkbox__checkbox {
+    // Apply override styles to customize the checkbox
+    @include StandardCheckboxStylesOverride(".Checkbox__checkbox-custom", 0.7rem, "checkbox");
+}
+
+.Checkbox__checkbox-custom {
+    display: inline-block;
+}

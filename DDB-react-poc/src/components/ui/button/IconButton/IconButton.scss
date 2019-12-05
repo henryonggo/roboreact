@@ -1,0 +1,6 @@
+@import "styles/mixins/index.scss";
+@import "styles/functions/index.scss";
+
+.IconButton {
+    @include StandardIconButtonStyles("CheckboxList__icon", 0.9rem);
+}

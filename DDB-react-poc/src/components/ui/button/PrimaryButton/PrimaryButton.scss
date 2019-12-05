@@ -1,0 +1,27 @@
+@import "styles/mixins/index.scss";
+
+.PrimaryButton.PrimaryButton { // Trick to increase specificity
+    @include ClearButtonStyles();
+
+    background-color: theme-link("button", "button-color", "primary");
+    color: theme-link("button", "text-color", "primary");
+
+    padding: .5rem;
+    border-radius: .1rem;
+
+    transition: background-color 0.2s;
+
+    cursor: pointer;
+
+    // -----------------
+    // --- Modifiers ---
+    // -----------------
+
+    &:hover, &:focus, &:active {
+        background-color: theme-link("button", "button-color", "secondary");
+    }
+
+    &.disabled {
+        background-color: theme-link("button", "button-color", "primary", 0.5);
+    }
+}
